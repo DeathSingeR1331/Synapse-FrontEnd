@@ -2,10 +2,10 @@
   "name": "synapse-ai-frontend",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 4173",
     "build": "vite build",
-    "preview": "vite preview",
-    "start": "vite preview"
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "start": "npm run dev"
   },
   "dependencies": {
     "emailjs-com": "^3.2.0",
