@@ -1,881 +1,809 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  FiMoreVertical, FiMic,
-  FiUpload, FiSettings, FiPlus, FiSun, FiMoon,
-  FiChevronDown, FiChevronUp, FiFolder, FiMessageSquare,
-  FiUser, FiLogOut, FiGithub, FiMail, FiPhoneCall,
-  FiImage, FiFileText, FiVideo, FiX, FiBookmark,
-  FiEdit
-} from 'react-icons/fi';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
-// --- Translations Object ---
-const translations = {
-  en: {
-    synapse: "Synapse",
-    newChat: "New Chat",
-    previousChats: "Previous Chats",
-    createWorkspace: "Create Workspace",
-    settings: "Settings",
-    toggleTheme: "Toggle Theme",
-    clearHistory: "Clear History",
-    logout: "Logout",
-    typeAMessage: "Type a message...",
-    send: "Send",
-    you: "You",
-    synapseAI: "Synapse AI",
-    startNewConversation: "Start a new conversation!",
-    typeMessageToBegin: "Type your message below to begin.",
-    noPreviousChats: "No previous chats.",
-    userProfile: "User Profile",
-    createWorkspaceModalTitle: "Create Workspace",
-    createWorkspaceModalDesc: "Create a new workspace to consolidate all your resources.",
-    enterWorkspaceName: "Enter the workspace name",
-    setFolderLocation: "Select the folder where the workspace is located.",
-    enterDescription: "Enter description",
-    create: "Create",
-    rename: "Rename",
-    share: "Share",
-    delete: "Delete",
-    feedback: "Feedback",
-    pin: "Pin",
-    chatLinkCopied: "Chat link copied:",
-    feedbackSubmitted: "Feedback submitted for Chat",
-    speechNotSupported: "Speech recognition not supported in this browser. Please use Chrome.",
-    uploaded: "📎 Uploaded:",
-    creatingWorkspace: "Creating workspace:",
-    workspaceCreated: "Workspace created!",
-    loggingOut: "Logging out and returning to welcome page (simulated).",
-    moreOptions: "More options",
-    connectApps: "Connect Apps:",
-    github: "GitHub",
-    whatsapp: "WhatsApp",
-    gmail: "Gmail",
-    welcomeNewChat: (chatNum) => `Welcome to New Chat #${chatNum}! How can I assist you today?`,
-    initialMessage: "Hello! How can I help you today?",
-    mode: "Mode",
-    selectMode: "Select Mode",
-    imageMode: "Image Mode",
-    documentMode: "Document Mode",
-    videoMode: "Video Mode",
-    clearSelection: "Clear selection",
-    workspaceCreatedMessage: (name) => `Workspace "${name}" has been successfully created!`,
-    chatPinned: "Chat pinned!",
-    recentChats: "Recent Chats",
-    startNewChatBtn: "Start New Chat",
-  },
-};
-// --- End Translations Object ---
-
-// Helper to generate a consistent index from a string
-const hashCode = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
+// --- Icon Component ---
+const Icon = ({ name, size = 16, className = "" }) => {
+    const icons = {
+        'more-vertical': <><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></>,
+        'edit': <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></>,
+        'chevron-up': <polyline points="18 15 12 9 6 15"></polyline>,
+        'chevron-down': <polyline points="6 9 12 15 18 9"></polyline>,
+        'user': <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></>,
+        'logout': <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></>,
+        'sun': <><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></>,
+        'moon': <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>,
+        'message-square': <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>,
+        'send': <><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></>,
+        'plus': <><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></>,
+        'clock': <><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></>,
+        'zap': <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>,
+        'toggle-left': <><rect x="1" y="5" width="22" height="14" rx="7" ry="7"></rect><circle cx="8" cy="12" r="3"></circle></>,
+        'toggle-right': <><rect x="1" y="5" width="22" height="14" rx="7" ry="7"></rect><circle cx="16" cy="12" r="3"></circle></>,
+        'trash-2': <><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></>,
+        'copy': <><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></>,
+        'download': <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></>,
+    };
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+        >
+            {icons[name]}
+        </svg>
+    );
 };
 
-// --- Fixed palette of Tailwind background colors for workspaces ---
-const WORKSPACE_COLORS_LIGHT = [
-  'bg-blue-100', 'bg-green-100', 'bg-yellow-100', 'bg-purple-100', 'bg-pink-100', 'bg-indigo-100',
-  'bg-red-100', 'bg-teal-100', 'bg-orange-100', 'bg-lime-100'
-];
+// --- Helper Components & Data ---
+const now = () => new Date().toISOString();
 
-const WORKSPACE_COLORS_DARK = [
-  'bg-blue-700', 'bg-green-700', 'bg-yellow-700', 'bg-purple-700', 'bg-pink-700', 'bg-indigo-700',
-  'bg-red-700', 'bg-teal-700', 'bg-orange-700', 'bg-lime-700'
-];
+// Chat Options Menu Component
+const ChatOptionsMenu = ({ chat, position, onClose, onRename, onDelete, accessToken }) => {
+    const menuRef = useRef(null);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
-const getWorkspaceColorClass = (str, theme) => {
-  const index = hashCode(str) % WORKSPACE_COLORS_LIGHT.length;
-  return theme === 'dark' ? WORKSPACE_COLORS_DARK[index] : WORKSPACE_COLORS_LIGHT[index];
-};
-// --- End fixed palette ---
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                onClose();
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [onClose]);
 
+    // ✅ FIX: The export function now includes the access token for authentication.
+    const handleExport = (format) => {
+        const exportUrl = `/api/v1/conversations/${chat.id}/export?format=${format}&token=${accessToken}`;
+        window.open(exportUrl, '_blank');
+        onClose();
+    };
 
-// --- Predefined Folder Options ---
-const FOLDER_OPTIONS = [
-  "",
-  "/projects/synapse_ai",
-  "/documents/reports",
-  "/my_data/research",
-  "/shared/team_files",
-  "/user/downloads",
-];
-// --- End Predefined Folder Options ---
+    return (
+        <motion.div
+            ref={menuRef}
+            className="absolute z-50 w-40 bg-gray-800/95 backdrop-blur-lg rounded-lg shadow-2xl border border-gray-700/50 overflow-hidden"
+            style={{ top: position.y, left: position.x }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.12 }}
+        >
+            <div className="p-1 relative">
+                <button
+                    onClick={() => { onRename(chat.id); onClose(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-700/50 transition-colors duration-200"
+                >
+                    <Icon name="edit" size={14} /> Rename
+                </button>
+                
+                {/* ✅ FIX: Moved hover event handlers to this parent div. 
+                    This ensures the sub-menu doesn't close when moving the mouse
+                    from the "Export" button to the sub-menu options. */}
+                <div
+                    onMouseEnter={() => setShowExportMenu(true)} 
+                    onMouseLeave={() => setShowExportMenu(false)} 
+                    className="relative"
+                >
+                    <button className="w-full flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-700/50 transition-colors duration-200">
+                        <div className="flex items-center gap-3">
+                            <Icon name="download" size={14} /> Export
+                        </div>
+                        <span className="text-xs">▶</span>
+                    </button>
+                    <AnimatePresence>
+                    {showExportMenu && (
+                        <motion.div 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                            className="absolute left-full -top-1 ml-1 w-32 bg-gray-800 rounded-lg shadow-2xl border border-gray-700/50 overflow-hidden"
+                        >
+                           <button onClick={() => handleExport('md')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">Markdown</button>
+                           <button onClick={() => handleExport('csv')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">CSV</button>
+                           <button onClick={() => handleExport('pdf')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">PDF</button>
+                        </motion.div>
+                    )}
+                    </AnimatePresence>
+                </div>
+                <div className="h-px bg-gray-700/50 my-1"></div>
 
-
-// --- WorkspaceModal Component (Moved Outside Dashboard) ---
-const WorkspaceModal = ({ t, newWorkspace, setNewWorkspace, setShowWorkspaceModal, handleCreateWorkspace }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-    <div className="p-6 rounded w-96 relative bg-white text-black dark:bg-gray-800 dark:text-white">
-      <button onClick={() => setShowWorkspaceModal(false)} className="absolute top-2 right-2 text-xl font-bold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">&times;</button>
-      <h2 className="text-xl font-semibold mb-4">{t('createWorkspaceModalTitle')}</h2>
-      <p className="mb-3 text-sm opacity-70">{t('createWorkspaceModalDesc')}</p>
-      <input
-        type="text"
-        placeholder={t('enterWorkspaceName')}
-        className="w-full p-2 mb-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white"
-        value={newWorkspace.name}
-        onChange={(e) => setNewWorkspace({ ...newWorkspace, name: e.target.value })}
-      />
-      <select
-        className="w-full p-2 mb-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white"
-        value={newWorkspace.folder}
-        onChange={(e) => setNewWorkspace({ ...newWorkspace, folder: e.target.value })}
-      >
-        <option value="" disabled>{t('setFolderLocation')}</option>
-        {FOLDER_OPTIONS.map((path, index) => (
-          <option key={index} value={path}>
-            {path || "--- Select a folder ---"}
-          </option>
-        ))}
-      </select>
-      <textarea
-        placeholder={t('enterDescription')}
-        className="w-full p-2 mb-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white h-24 resize-y"
-        value={newWorkspace.description}
-        onChange={(e) => setNewWorkspace({ ...newWorkspace, description: e.target.value })}
-      />
-      <button
-        onClick={handleCreateWorkspace}
-        className="w-full bg-indigo-600 py-2 rounded text-white hover:bg-indigo-700 transition-colors"
-      >
-        {t('create')}
-      </button>
-    </div>
-  </div>
-);
-// --- End WorkspaceModal Component ---
-
-
-const ChatOptionsMenu = ({ chatId, position, onClose, t, setRenamingChat, handleDelete, handleShare, handlePin, chatOptionsMenuRef }) => {
-  if (!chatId) return null;
-
-  return (
-    <div
-      ref={chatOptionsMenuRef}
-      className="fixed bg-gray-100 text-black dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 w-36 overflow-hidden"
-      style={{ top: position.top, left: position.left }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Share button at top with separator */}
-      <button onClick={() => { handleShare(chatId); onClose(); }} className="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600 w-full text-left text-sm">{t('share')}</button>
-      <div className="border-t border-gray-300 dark:border-gray-600 my-1"></div> {/* Solid line separator */}
-      
-      {/* Remaining buttons */}
-      <button onClick={() => { setRenamingChat(chatId); onClose(); }} className="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600 w-full text-left text-sm">{t('rename')}</button>
-      <button onClick={() => { handlePin(chatId); onClose(); }} className="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600 w-full text-left text-sm">{t('pin')}</button>
-      <button onClick={() => { handleDelete(chatId); onClose(); }} className="block px-4 py-2 hover:bg-red-500 hover:text-white w-full text-left text-sm">{t('delete')}</button>
-      <button onClick={() => { /* Re-added handleFeedback as it was previously present and useful */ /* Removed handleDownload(chatId) */ onClose(); }} className="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600 w-full text-left text-sm">{t('feedback')}</button>
-    </div>
-  );
+                <button
+                    onClick={() => { onDelete(chat.id); onClose(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md hover:bg-red-500/20 text-red-400 transition-colors duration-200"
+                >
+                    <Icon name="trash-2" size={14} /> Delete
+                </button>
+            </div>
+        </motion.div>
+    );
 };
 
 
 const Dashboard = () => {
-  const [chatInput, setChatInput] = useState('');
-  const [chats, setChats] = useState([
-    {
-      id: 1,
-      title: 'Chat 1',
-      messages: [{ role: 'assistant', text: translations.en.initialMessage }],
-      active: true,
-      type: 'chat'
-    },
-  ]);
-  const [chatCount, setChatCount] = useState(2);
-  const [activeChatId, setActiveChatId] = useState(1);
-  const [renamingChat, setRenamingChat] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [theme, setTheme] = useState('light');
-  const language = 'en'; // Hardcode language to English
-  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
-  const [newWorkspace, setNewWorkspace] = useState({ name: '', folder: '', description: '' });
-  const [isChatHistoryExpanded, setIsChatHistoryExpanded] = useState(true); // Still useful for the full previous chats list
-  const chatEndRef = useRef(null);
+    const navigate = useNavigate();
+    const { user, logout, isAuthenticated, apiCall, accessToken } = useAuth();
+    
+    // --- State Management ---
+    const [chats, setChats] = useState([]);
+    const [activeChatId, setActiveChatId] = useState(null);
+    const [chatInput, setChatInput] = useState('');
+    const [clarification, setClarification] = useState(null);
+    const [clarificationInput, setClarificationInput] = useState('');
+    const [theme, setTheme] = useState('dark');
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+    const [isTyping, setIsTyping] = useState(false);
+    const [isPersonalizationEnabled, setIsPersonalizationEnabled] = useState(true);
 
-  const [sidebarWidth, setSidebarWidth] = useState(288); // This state will be less relevant if width is controlled by isSidebarExpanded
-  const MIN_SIDEBAR_WIDTH = 200;
-  const MAX_SIDEBAR_WIDTH = 400;
+    // UI state
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [renamingChatId, setRenamingChatId] = useState(null);
+    const [renameInputValue, setRenameInputValue] = useState("");
+    const [chatMenu, setChatMenu] = useState({ visible: false, chat: null, x: 0, y: 0 });
+    const [selectedMsg, setSelectedMsg] = useState(null);
+    const [copySuccessId, setCopySuccessId] = useState(null);
+    const [showJumpToLatest, setShowJumpToLatest] = useState(false);
 
-  const [profileUserName, setProfileUserName] = useState('Random User');
-  const [profileUserEmail, setProfileUserEmail] = useState('random.user@example.com');
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef(null);
-  const settingsButtonRef = useRef(null);
+    // --- Refs ---
+    const ws = useRef(null);
+    const jobMapRef = useRef({});
+    const activeChatIdRef = useRef(activeChatId);
+    const chatEndRef = useRef(null);
+    const profileMenuRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
-  const [chatMenuOpenForId, setChatMenuOpenForId] = useState(null);
-  const chatMenuButtonRefs = useRef({});
-  const [chatMenuPosition, setChatMenuPosition] = useState({ top: 0, left: 0 });
-  const chatOptionsMenuRef = useRef(null);
+    // --- Effects for fetching & WS ---
+    useEffect(() => {
+        const fetchConversations = async () => {
+            if (!isAuthenticated) return;
+            try {
+                const response = await apiCall('/api/v1/conversations/');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch conversations.');
+                }
+                const data = await response.json();
+                const formattedChats = data.map(chat => ({
+                    id: chat.uuid,
+                    title: chat.title,
+                    messages: chat.messages.map(msg => ({
+                        role: msg.role,
+                        text: msg.content
+                    })),
+                    timestamp: new Date(chat.updated_at)
+                })).sort((a, b) => b.timestamp - a.timestamp);
+                
+                setChats(formattedChats);
+                
+                if (formattedChats.length > 0 && !activeChatId) {
+                    setActiveChatId(formattedChats[0].id);
+                }
+            } catch (error) {
+                console.error("Error fetching conversations:", error);
+            }
+        };
+        fetchConversations();
+    }, [isAuthenticated, apiCall]);
 
-  const [showModeSelectorOptions, setShowModeSelectorOptions] = useState(false);
-  const [selectedMode, setSelectedMode] = useState(null);
-  const modeSelectorButtonRef = useRef(null);
-  const modeSelectorOptionsRef = useRef(null);
+    useEffect(() => {
+        activeChatIdRef.current = activeChatId;
+        if (clarification && clarification.job_id) {
+            const activeChatHasJob = Object.values(jobMapRef.current).includes(activeChatId);
+            if (!activeChatHasJob) {
+                setClarification(null);
+            }
+        }
+    }, [activeChatId]);
 
-  // --- Sidebar Expansion State (Gemini-style) ---
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  // --- END NEW STATE ---
+    useEffect(() => {
+        if (!isAuthenticated || !user?.uuid || !accessToken) {
+            if (ws.current) { ws.current.close(); ws.current = null; }
+            return;
+        }
 
-  const t = (key, ...args) => {
-    let text = translations[language][key] || translations.en[key] || key;
-    if (typeof text === 'function') {
-      text = text(...args);
-    }
-    return text;
-  };
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            return;
+        }
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('dark', 'light');
-    root.classList.add(theme);
-  }, [theme]);
+        const API_BASE = 'http://localhost:8000';
+        const wsUrl = API_BASE.replace(/^http/, 'ws');
+        const socket = new WebSocket(`${wsUrl}/ws/${user.uuid}?token=${accessToken}`);
+        ws.current = socket;
 
-  useEffect(() => {
-    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }, [chats, activeChatId]);
+        socket.onopen = () => console.info(`[${now()}] WS onopen: connection ESTABLISHED`);
+        socket.onerror = (error) => console.error(`[${now()}] WS onerror:`, error);
+        socket.onclose = (event) => {
+            console.warn(`[${now()}] WS onclose: Code: ${event.code}`);
+            ws.current = null;
+        };
 
-  useEffect(() => {
-    const handleClickOutsideProfile = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        setIsProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutsideProfile);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideProfile);
-    };
-  }, []);
+        socket.onmessage = (event) => {
+            let data;
+            try {
+                data = JSON.parse(event.data);
+            } catch (e) {
+                console.error(`[${now()}] WS parse error:`, e);
+                return;
+            }
 
-  useEffect(() => {
-    const handleClickOutsideSettings = (event) => {
-      if (
-        showSettings &&
-        settingsButtonRef.current &&
-        !settingsButtonRef.current.contains(event.target) &&
-        event.target.closest('.settings-menu-container') === null
-      ) {
-        setShowSettings(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutsideSettings);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideSettings);
-    };
-  }, [showSettings]);
+            const targetConversationId = data.conversation_id || jobMapRef.current[data.job_id] || activeChatIdRef.current;
+            
+            if (!targetConversationId) {
+                console.warn(`[${now()}] WS: Could not resolve a target conversation ID for job ${data.job_id}.`);
+                return;
+            }
+            
+            if (data.status === 'COMPLETED' && data.result) {
+                const finalAnswer = data.result.response;
+                setClarification(null);
+                setIsTyping(false);
+                
+                setChats(prevChats => prevChats.map(chat => {
+                    if (chat.id === targetConversationId) {
+                        const newMessages = [...chat.messages];
+                        const lastMessageIndex = newMessages.length - 1;
+                        if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
+                            newMessages[lastMessageIndex] = { role: 'assistant', text: finalAnswer };
+                        } else {
+                            newMessages.push({ role: 'assistant', text: finalAnswer });
+                        }
+                        return { ...chat, messages: newMessages };
+                    }
+                    return chat;
+                }));
 
-  useEffect(() => {
-    const handleClickOutsideChatOptions = (event) => {
-      if (
-        chatMenuOpenForId !== null &&
-        chatOptionsMenuRef.current &&
-        !chatOptionsMenuRef.current.contains(event.target) &&
-        !chatMenuButtonRefs.current[chatMenuOpenForId]?.contains(event.target)
-      ) {
-        setChatMenuOpenForId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutsideChatOptions);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideChatOptions);
-    };
-  }, [chatMenuOpenForId]);
+            } else if (data.status === 'AWAITING_CLARIFICATION') {
+                setIsTyping(false);
+                setChats(prevChats => prevChats.map(chat => {
+                    if (chat.id === targetConversationId) {
+                        const newMessages = [...chat.messages];
+                        if (data.initial_response) {
+                            const lastMessageIndex = newMessages.length - 1;
+                            if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
+                                newMessages[lastMessageIndex] = { role: 'assistant', text: data.initial_response };
+                            } else {
+                                newMessages.push({ role: 'assistant', text: data.initial_response });
+                            }
+                        }
+                        return { ...chat, messages: newMessages };
+                    }
+                    return chat;
+                }));
+                setClarification(data.clarification_request);
+            }
+        };
 
+        return () => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
+        };
+    }, [isAuthenticated, user, accessToken]);
 
-  useEffect(() => {
-    const handleClickOutsideModeSelector = (event) => {
-      if (
-        showModeSelectorOptions &&
-        modeSelectorOptionsRef.current &&
-        !modeSelectorOptionsRef.current.contains(event.target) &&
-        modeSelectorButtonRef.current &&
-        !modeSelectorButtonRef.current.contains(event.target)
-      ) {
-        setShowModeSelectorOptions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutsideModeSelector);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideModeSelector);
-    };
-  }, [showModeSelectorOptions]);
+    useEffect(() => { 
+        if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); 
+    }, [chats, activeChatId, clarification]);
 
-  // --- Sidebar hover/leave event handlers ---
-  const handleMouseEnterSidebar = () => {
-    setIsSidebarExpanded(true);
-  };
-  const handleMouseLeaveSidebar = () => {
-    setIsSidebarExpanded(false);
-    setShowSettings(false); // Close settings menu when sidebar collapses
-  };
-  // --- END NEW ---
+    useEffect(() => { document.documentElement.className = theme; }, [theme]);
 
-  const handleToggleChatMenu = (e, chatId) => {
-    e.stopPropagation();
-    const buttonRect = chatMenuButtonRefs.current[chatId].getBoundingClientRect();
-    setChatMenuPosition({
-      top: buttonRect.bottom + 5,
-      // Adjust left position based on sidebar expansion
-      left: isSidebarExpanded ? buttonRect.left - 100 : buttonRect.right + 5
-    });
-    setChatMenuOpenForId(chatId);
-  };
-
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    document.body.style.cursor = 'ew-resize';
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleMouseMove = (e) => {
-    let newWidth = e.clientX;
-    if (newWidth < MIN_SIDEBAR_WIDTH) {
-      newWidth = MIN_SIDEBAR_WIDTH;
-    } else if (newWidth > MAX_SIDEBAR_WIDTH) {
-      newWidth = MAX_SIDEBAR_WIDTH;
-    }
-    setSidebarWidth(newWidth);
-  };
-
-  const handleMouseUp = () => {
-    document.body.style.cursor = 'default';
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', handleMouseUp);
-  };
-
-  const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-
-  const clearHistory = () => {
-    setChats([]);
-    setActiveChatId(null);
-    setChatCount(1);
-  };
-
-  const handleSend = () => {
-    if (!chatInput.trim()) return;
-    const newMsg = { role: 'user', text: chatInput };
-    let assistantResponseText = `(${t('synapseAI')}) ${chatInput}`;
-
-    if (selectedMode) {
-      assistantResponseText = `(${t(selectedMode + 'Mode')}) ${chatInput}`;
-      setSelectedMode(null);
-    }
-
-    const assistantMsg = { role: 'assistant', text: assistantResponseText };
-
-    setChats(prev => prev.map(chat =>
-      chat.id === activeChatId
-        ? { ...chat, messages: [...chat.messages, newMsg, assistantMsg] }
-        : chat
-    ));
-    setChatInput('');
-  };
-
-  const handleNewChat = () => {
-    const newId = chatCount;
-    const newChatTitle = `${t('newChat')} ${newId}`;
-    const initialAssistantMessage = {
-      role: 'assistant',
-      text: t('welcomeNewChat', newId)
-    };
-    const newChat = {
-      id: newId,
-      title: newChatTitle,
-      messages: [initialAssistantMessage],
-      active: true,
-      type: 'chat'
+    const handleNewChat = () => {
+        const newId = crypto.randomUUID();
+        const newChat = { 
+            id: newId, 
+            title: `New Chat`, 
+            messages: [{ role: 'assistant', text: "Hello! How can I help you today?" }],
+            timestamp: new Date()
+        };
+        setChats(prev => [newChat, ...prev]);
+        setActiveChatId(newId);
+        setClarification(null);
     };
 
-    setChats(prev => {
-      const updatedChats = prev.map(c => ({ ...c, active: false }));
-      return [...updatedChats, newChat];
-    });
-    setChatCount(chatCount + 1);
-    setActiveChatId(newId);
-    setSelectedMode(null);
-    setIsSidebarExpanded(false); // Ensure sidebar collapses after starting new chat
-  };
+    const handleSend = async (messageText = chatInput) => {
+        const content = messageText.trim();
+        if (!content || !activeChatId) return;
 
-  const handleDelete = (id) => {
-    const filtered = chats.filter(chat => chat.id !== id);
-    setChats(filtered);
-    if (filtered.length) {
-      setActiveChatId(filtered[0]?.id || null);
-    } else {
-      setActiveChatId(null);
-    }
-    setChatMenuOpenForId(null);
-  };
+        const userMsg = { role: 'user', text: content };
+        const thinkingMsg = { role: 'assistant', text: '...', thinking: true };
+        const tempActiveChatId = activeChatId; 
+        setChatInput('');
+        setClarification(null);
+        setIsTyping(true);
 
-  const handleFeedback = (id) => {
-    alert(`${t('feedbackSubmitted')} (ID: ${id})`);
-    setChatMenuOpenForId(null);
-  };
+        setChats(prev => prev.map(chat => 
+            chat.id === tempActiveChatId 
+                ? { ...chat, messages: [...chat.messages, userMsg, thinkingMsg] } 
+                : chat
+        ));
 
-  const handleShare = (id) => {
-    const url = `https://synapse-ai.app/chat/${id}`;
-    navigator.clipboard.writeText(url);
-    alert(`${t('chatLinkCopied')} ${url}`);
-    setChatMenuOpenForId(null);
-  };
+        try {
+            const response = await apiCall(`/api/v1/conversations/${tempActiveChatId}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    content: content,
+                    is_personalization_enabled: isPersonalizationEnabled
+                }),
+            });
 
-  const handlePin = (id) => {
-    alert(`${t('chatPinned')} (ID: ${id})`);
-    setChatMenuOpenForId(null);
-  };
-
-  const handleRename = (id, newName) => {
-    if (newName.trim() === '') {
-      newName = chats.find(c => c.id === id)?.type === 'workspace' ? `Workspace ${id}` : `${t('newChat')} ${id}`;
-    }
-    setChats(prev => prev.map(chat => chat.id === id ? { ...chat, title: newName } : chat));
-    setRenamingChat(null);
-    setChatMenuOpenForId(null);
-  };
-
-  const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      alert(t('speechNotSupported'));
-      return;
-    }
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.lang = language;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onresult = (event) => setChatInput(event.results[0][0].transcript);
-    recognition.onerror = (event) => console.error("Speech recognition error:", event.error);
-    recognition.start();
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const fileMsg = { role: 'user', text: `${t('uploaded')} ${file.name}` };
-      setChats(prev => prev.map(chat => chat.id === activeChatId
-        ? { ...chat, messages: [...chat.messages, fileMsg] } : chat));
-    }
-  };
-
-  const handleCreateWorkspace = () => {
-    if (!newWorkspace.name.trim()) {
-      alert("Please enter a workspace name.");
-      return;
-    }
-    if (!newWorkspace.folder.trim()) {
-      alert("Please select a folder location.");
-      return;
-    }
-
-    const newWorkspaceId = Date.now();
-    const newWorkspaceChat = {
-      id: newWorkspaceId,
-      title: newWorkspace.name,
-      messages: [{ role: 'assistant', text: t('workspaceCreatedMessage', newWorkspace.name) }],
-      active: true,
-      type: 'workspace',
-      folderLocation: newWorkspace.folder,
-      description: newWorkspace.description
+            if (!response.ok) throw new Error('Failed to send message.');
+            
+            const createdMessage = await response.json();
+            if (createdMessage.job_id) {
+                jobMapRef.current[createdMessage.job_id] = createdMessage.conversation_id || tempActiveChatId;
+            }
+        } catch (error) {
+            console.error(`[${now()}] handleSend: Error:`, error);
+            const errorMsg = { role: 'assistant', text: `Error: ${error.message}` };
+            setIsTyping(false);
+            setChats(prev => prev.map(chat => {
+                if (chat.id === tempActiveChatId) { 
+                    return { ...chat, messages: chat.messages.map(msg => msg.thinking ? errorMsg : msg) };
+                }
+                return chat;
+            }));
+        }
+    };
+    
+    const handleClarificationResponse = () => {
+        const responseText = clarificationInput.trim();
+        if (!ws.current || ws.current.readyState !== WebSocket.OPEN || !responseText) {
+            console.error("WebSocket is not connected or input is empty.");
+            return;
+        }
+        
+        ws.current.send(JSON.stringify({
+            type: "clarification_response",
+            job_id: clarification.job_id,
+            response: responseText
+        }));
+        
+        const userClarificationMsg = { role: 'user', text: responseText };
+        const thinkingMsg = { role: 'assistant', text: '...', thinking: true };
+        
+        setChats(prev => prev.map(chat => 
+            chat.id === activeChatId 
+                ? { ...chat, messages: [...chat.messages, userClarificationMsg, thinkingMsg] } 
+                : chat
+        ));
+        setClarification(null);
+        setClarificationInput('');
+        setIsTyping(true);
     };
 
-    setChats(prev => {
-      const updatedChats = prev.map(c => ({ ...c, active: false }));
-      return [...updatedChats, newWorkspaceChat];
-    });
+    const handleLogout = async () => {
+        if (ws.current) ws.current.close();
+        await logout();
+    };
+    
+    const handleOpenChatMenu = (event, chat) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const rect = event.currentTarget.getBoundingClientRect();
+        setChatMenu({ visible: true, chat, x: rect.left, y: rect.bottom + 8 });
+    };
 
-    setActiveChatId(newWorkspaceId);
-    console.log(`${t('creatingWorkspace')}`, newWorkspace);
-    setNewWorkspace({ name: '', folder: '', description: '' });
-    setShowWorkspaceModal(false);
-    setSelectedMode(null);
-  };
+    const handleStartRename = (chatId) => {
+        const chatToRename = chats.find(c => c.id === chatId);
+        if (chatToRename) {
+            setRenamingChatId(chatId);
+            setRenameInputValue(chatToRename.title);
+        }
+    };
 
-  const handleLogout = () => {
-    alert(t('loggingOut'));
-    setChats([{ id: 1, title: `${t('newChat')} 1`, messages: [{ role: 'assistant', text: t('initialMessage') }], active: true, type: 'chat' }]);
-    setChatCount(2);
-    setActiveChatId(1);
-    setChatInput('');
-    setShowSettings(false);
-    setNewWorkspace({ name: '', folder: '', description: '' });
-    setIsChatHistoryExpanded(true);
-    setSelectedMode(null);
-  };
+    const handleCancelRename = () => {
+        setRenamingChatId(null);
+        setRenameInputValue("");
+    };
 
-  const toggleModeSelector = (e) => {
-    e.stopPropagation();
-    setShowModeSelectorOptions(prev => !prev);
-  };
+    const handleRenameSubmit = async (chatId) => {
+        if (!renameInputValue.trim()) return handleCancelRename();
+        try {
+            await apiCall(`/api/v1/conversations/${chatId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ title: renameInputValue }),
+            });
+            setChats(prev => prev.map(c => c.id === chatId ? { ...c, title: renameInputValue } : c));
+        } catch (error) {
+            console.error("Error renaming chat:", error);
+        } finally {
+            handleCancelRename();
+        }
+    };
 
-  const handleModeSelect = (mode) => {
-    setSelectedMode(mode);
-    setShowModeSelectorOptions(false);
-  };
+    const handleDeleteChat = async (chatId) => {
+        try {
+            await apiCall(`/api/v1/conversations/${chatId}`, { method: 'DELETE' });
+            const remainingChats = chats.filter(c => c.id !== chatId);
+            setChats(remainingChats);
+            if (activeChatId === chatId) {
+                setActiveChatId(remainingChats.length > 0 ? remainingChats[0].id : null);
+            }
+        } catch (error) {
+            console.error("Error deleting chat:", error);
+        }
+    };
 
-  const handleRemoveMode = () => {
-    setSelectedMode(null);
-  };
+    const copyMessageToClipboard = async (text, msgId) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopySuccessId(msgId);
+            setTimeout(() => setCopySuccessId(null), 1500);
+        } catch (e) {
+            console.error("Copy failed", e);
+        }
+    };
 
-  const allChatsSorted = [...chats].sort((a, b) => b.id - a.id); // Sort all chats by ID descending for display
+    const handleMessagesScroll = (e) => {
+        const node = e.target;
+        const threshold = 120;
+        const isAway = node.scrollHeight - (node.scrollTop + node.clientHeight) > threshold;
+        setShowJumpToLatest(isAway);
+    };
 
-  return (
-    <div className="flex h-screen bg-white text-black dark:bg-gray-900 dark:text-white font-sans">
-      {/* Sidebar - Refactored for Hovering */}
-      <div
-        className={`bg-white text-black dark:bg-gray-800 dark:text-white p-4 flex flex-col justify-between relative shadow-lg h-screen transition-all duration-200 ease-in-out
-          ${isSidebarExpanded ? 'w-72' : 'w-16'}`}
-        onMouseEnter={handleMouseEnterSidebar}
-        onMouseLeave={handleMouseLeaveSidebar}
-      >
-        <div className="flex flex-col h-full">
-          {/* Top Section */}
-          <div className="flex justify-between items-center mb-6">
-            {isSidebarExpanded && (
-              <span className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out mr-auto">
-                {t('synapse')}
-              </span>
-            )}
-            <button
-              onClick={toggleTheme}
-              className={`p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${isSidebarExpanded ? 'ml-auto' : 'mx-auto'}`}
-              title={t('toggleTheme')}
-            >
-              {theme === 'light' ? <FiMoon size={20} /> : <FiSun size={20} />}
-            </button>
-          </div>
+    const scrollToBottom = () => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTo({ top: messagesContainerRef.current.scrollHeight, behavior: 'smooth' });
+            setShowJumpToLatest(false);
+        } else if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
 
-          {/* New Chat Button / Expanded Content based on isSidebarExpanded */}
-          <div className="flex-1 overflow-hidden">
-            {!isSidebarExpanded ? (
-              // Collapsed state: Only New Chat icon at top
-              <div className="flex flex-col items-center justify-start py-2">
-                <button
-                  onClick={handleNewChat}
-                  className="p-3 rounded-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white flex-shrink-0"
-                  title={t('newChat')}
-                >
-                  <FiEdit size={20} />
-                </button>
-              </div>
-            ) : (
-              // Expanded state: Full menu content
-              <div className="flex flex-col gap-2 h-full">
-                 {/* New Chat Button (in expanded state) */}
-                <button
-                  onClick={handleNewChat}
-                  className="w-full mb-2 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white py-3 px-4 rounded-lg flex items-center gap-2 font-medium"
-                >
-                  <FiEdit size={20} className="flex-shrink-0" />
-                  <span className="overflow-hidden whitespace-nowrap">{t('newChat')}</span>
-                </button>
+    const activeChat = chats.find(chat => chat.id === activeChatId);
+    const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    
+    if (!isAuthenticated) return null;
 
-                {/* Previous Chats Section (full list when expanded) */}
-                <div className="mb-4 flex-1">
-                  <button
-                    onClick={() => setIsChatHistoryExpanded(!isChatHistoryExpanded)}
-                    className="w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium"
-                  >
-                    <span className="flex items-center gap-2">
-                      <FiFolder size={18} className="flex-shrink-0" />
-                      <span className="overflow-hidden whitespace-nowrap">{t('previousChats')}</span>
-                    </span>
-                    <span>
-                      {isChatHistoryExpanded ? <FiChevronUp size={18} /> : <FiChevronDown size={18} />}
-                    </span>
-                  </button>
-                  {isChatHistoryExpanded && (
-                    <div className="max-h-64 overflow-y-auto mt-2 pr-2 custom-scrollbar">
-                      {allChatsSorted.length > 0 ? (
-                        allChatsSorted.map(chat => {
-                          const isWorkspace = chat.type === 'workspace';
-                          const workspaceColorClass = isWorkspace ? getWorkspaceColorClass(chat.title, theme) : '';
-                          
-                          const itemClass = `mb-2 group relative p-2 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors
-                            ${isWorkspace ? workspaceColorClass : (chat.id === activeChatId ? 'bg-indigo-100 dark:bg-indigo-700' : 'bg-gray-100 dark:bg-gray-700')}`;
-
-                          return (
-                            <div
-                              key={chat.id}
-                              className={itemClass}
-                              onClick={() => { setActiveChatId(chat.id); setIsSidebarExpanded(false); }}
-                            >
-                              <div className="flex justify-between items-center">
-                                {renamingChat === chat.id ? (
-                                  <input
-                                    type="text"
-                                    className="text-black dark:text-white rounded px-2 py-1 bg-white dark:bg-gray-600 w-full text-sm"
-                                    defaultValue={chat.title}
-                                    onBlur={(e) => handleRename(chat.id, e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleRename(chat.id, e.target.value); }}
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <span className="flex-1 truncate text-sm">{chat.title}</span>
-                                )}
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    ref={el => chatMenuButtonRefs.current[chat.id] = el}
-                                    onClick={(e) => handleToggleChatMenu(e, chat.id)}
-                                    className="p-1 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-full"
-                                    title={t('moreOptions')}
-                                  >
-                                    <FiMoreVertical size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">{t('noPreviousChats')}</p>
-                      )}
+    return (
+        <div className="flex h-screen bg-black text-white overflow-hidden font-sans">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800 pointer-events-none">
+                <div className="absolute inset-0 opacity-20">
+                    <div className="absolute inset-0"
+                         style={{
+                           backgroundImage: `
+                             linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px)
+                           `,
+                           backgroundSize: '50px 50px'
+                         }}>
                     </div>
-                  )}
+                </div>
+            </div>
+
+            <motion.div 
+                className={`relative z-20 bg-gradient-to-b from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-lg border-r border-cyan-500/20 flex flex-col justify-between shadow-2xl transition-all duration-500 ease-out ${isSidebarExpanded ? 'w-80' : 'w-20'} min-h-0`}
+                initial={false}
+                animate={{ width: isSidebarExpanded ? 320 : 80 }}
+            >
+                <div className="p-6 flex-grow flex flex-col min-h-0">
+                    <div className="flex items-center justify-between mb-8">
+                        <AnimatePresence>
+                            {isSidebarExpanded && (
+                                <motion.div 
+                                    className="flex items-center space-x-3"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <motion.div className="relative" whileHover={{ scale: 1.05 }}>
+                                        <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center relative overflow-hidden group">
+                                            <Icon name="zap" size={20} className="text-white relative z-10"/>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 group-hover:translate-x-full transition-transform duration-700"></div>
+                                        </div>
+                                    </motion.div>
+                                    <div>
+                                        <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent">SYNAPSE AI</h1>
+                                        <p className="text-xs text-cyan-300/60 font-mono">Neural Assistant</p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        
+                        <motion.button onClick={toggleTheme} className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 transition-all duration-300 border border-cyan-500/20" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <motion.div animate={{ rotate: theme === 'dark' ? 0 : 180 }} transition={{ duration: 0.5 }}>
+                                {theme === 'light' ? <Icon name="moon" size={18} className="text-cyan-400"/> : <Icon name="sun" size={18} className="text-cyan-400"/>}
+                            </motion.div>
+                        </motion.button>
+                    </div>
+                    
+                    <motion.button onClick={handleNewChat} className={`w-full flex items-center gap-3 text-white py-4 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 shadow-lg relative overflow-hidden group transition-all duration-300 ${!isSidebarExpanded && 'justify-center'}`} whileHover={{ scale: 1.02 }}>
+                        <motion.div whileHover={{ rotate: 90 }} transition={{ duration: 0.3 }}><Icon name="plus" size={20} /></motion.div>
+                        <AnimatePresence>{isSidebarExpanded && (<motion.span className="font-medium" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>New Chat</motion.span>)}</AnimatePresence>
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                    </motion.button>
+
+                    <AnimatePresence>
+                        {isSidebarExpanded && (
+                            <motion.div className="mt-4" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
+                                <motion.button onClick={() => setIsPersonalizationEnabled(!isPersonalizationEnabled)} className={`w-full flex items-center gap-3 text-sm py-3 px-3 rounded-lg ${isPersonalizationEnabled ? 'bg-gradient-to-r from-green-600/20 to-green-700/20 text-green-400' : 'bg-gray-700/20 text-gray-400'}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                    {isPersonalizationEnabled ? <Icon name="toggle-right" size={20} className="text-green-400"/> : <Icon name="toggle-left" size={20} className="text-gray-400"/>}
+                                    <span className="font-medium">Personalization Engine</span>
+                                </motion.button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {isSidebarExpanded && (
+                            <motion.div className="mt-6 flex-grow flex flex-col min-h-0" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
+                                <div className="flex items-center justify-between py-2 px-1 mb-3">
+                                    <span className="flex items-center gap-2 text-cyan-300/80 text-sm font-medium"><Icon name="clock" size={16}/> Recent Chats</span>
+                                </div>
+
+                                <div className="flex-grow overflow-y-auto custom-scrollbar space-y-2 pr-2 min-h-0" style={{ scrollBehavior: 'smooth' }}>
+                                    <AnimatePresence>
+                                        {chats.length > 0 ? chats.map((chat, index) => (
+                                            <motion.div key={chat.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.28, delay: index * 0.03 }} className={`p-3 rounded-lg transition-all duration-300 relative group ${ activeChatId === chat.id ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30' : 'hover:bg-gray-700/50 border border-transparent' }`}>
+                                                <div className="flex items-center space-x-3" onClick={() => renamingChatId !== chat.id && setActiveChatId(chat.id)}>
+                                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${activeChatId === chat.id ? 'bg-cyan-400' : 'bg-gray-500'}`} />
+                                                    <div className="flex-1 min-w-0">
+                                                        {renamingChatId === chat.id ? (
+                                                            <input type="text" value={renameInputValue} onChange={(e) => setRenameInputValue(e.target.value)} onBlur={() => handleRenameSubmit(chat.id)} onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSubmit(chat.id); if (e.key === 'Escape') handleCancelRename(); }} className="w-full bg-gray-700/80 text-sm font-medium text-white p-1 rounded border border-cyan-500/50 focus:outline-none" autoFocus onClick={(e) => e.stopPropagation()} />
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-sm font-medium text-white truncate cursor-pointer">{chat.title}</p>
+                                                                <p className="text-xs text-gray-400 truncate cursor-pointer">{chat.messages.length > 1 ? chat.messages[chat.messages.length - 1]?.text.substring(0,30) + '...' : 'Start a conversation...'}</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    {renamingChatId !== chat.id && (
+                                                        <button onClick={(e) => handleOpenChatMenu(e, chat)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-gray-600/50 ml-auto flex-shrink-0" title="Chat options">
+                                                            <Icon name="more-vertical" size={16}/>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {activeChatId === chat.id && (<motion.div layoutId="activeIndicator" className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-r" />)}
+                                            </motion.div>
+                                        )) : (
+                                            <motion.div className="text-center py-8 text-gray-400" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                                <Icon name="message-square" size={32} className="mx-auto mb-3 opacity-50"/>
+                                                <p className="text-sm">No previous chats yet.</p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
-                {/* Create Workspace Button (in expanded state) */}
-                <button
-                  onClick={() => { setShowWorkspaceModal(true); setIsSidebarExpanded(false); }}
-                  className={`w-full mb-3 py-2 px-4 rounded-lg flex items-center gap-2 font-medium transition-colors
-                    ${showWorkspaceModal ? 'bg-blue-700 text-white shadow-lg' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                >
-                  <FiFolder size={18} className="flex-shrink-0" />
-                  <span className="overflow-hidden whitespace-nowrap">{t('createWorkspace')}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Section (Settings icon always visible) */}
-          <div className="mt-auto py-2">
-            <button
-              ref={settingsButtonRef}
-              onClick={() => setShowSettings(!showSettings)}
-              className="w-full flex items-center justify-center gap-3 text-sm py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
-            >
-              <FiSettings size={20} className="flex-shrink-0" />
-              {isSidebarExpanded && ( // Only show text when expanded
-                <span className="overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out w-auto">{t('settings')}</span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {showSettings && (
-          <div className="settings-menu-container absolute bg-white text-black dark:bg-gray-800 dark:text-white p-4 rounded-lg shadow-xl z-20 w-60 border border-gray-200 dark:border-gray-700"
-               style={{
-                 bottom: '1rem', // Position above the settings button
-                 left: isSidebarExpanded ? '18rem' : '4rem', // Adjust based on sidebar width
-                 transform: 'translateX(-50%)' // Center horizontally relative to its left point
-               }}>
-            <h2 className="text-lg font-semibold mb-3">{t('settings')}</h2>
-            <button onClick={clearHistory} className="w-full mb-2 bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors text-sm">{t('clearHistory')}</button>
-
-            {/* Connect Apps Section */}
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <h3 className="text-md font-semibold mb-2">{t('connectApps')}</h3>
-              <a
-                href="https://github.com/your-github-profile"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm mb-2"
-              >
-                <FiGithub size={16} /> {t('github')}
-              </a>
-              <a
-                href="https://wa.me/919876543210"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm mb-2"
-              >
-                <FiPhoneCall size={16} /> {t('whatsapp')}
-              </a>
-              <a
-                href="mailto:your.email@gmail.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm mb-2"
-              >
-                <FiMail size={16} /> {t('gmail')}
-              </a>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="w-full mt-3 bg-gray-200 dark:bg-gray-700 text-red-600 p-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 text-sm"
-            >
-              <FiLogOut size={16} /> {t('logout')}
-            </button>
-          </div>
-        )}
-
-        {/* Resizable handle */}
-        <div
-          className="absolute top-0 right-0 w-2 h-full cursor-ew-resize opacity-0 hover:opacity-100 bg-gray-300 dark:bg-gray-600 transition-opacity duration-200"
-          onMouseDown={handleMouseDown}
-          title="Drag to resize"
-          style={{ zIndex: 30 }}
-        />
-      </div>
-
-      {/* Chat area */}
-      <div className="flex-1 p-10 flex flex-col bg-gray-50 dark:bg-gray-900 relative">
-
-        {/* Profile Icon and Details - Adjusted positioning */}
-        <div className="absolute top-4 right-4 z-40" ref={profileMenuRef}>
-          <button
-            className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
-            title={t('userProfile')}
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-          >
-            <FiUser size={20} className="text-indigo-600 dark:text-indigo-400" />
-          </button>
-          {isProfileMenuOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <p className="font-semibold text-base">{profileUserName}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{profileUserEmail}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
-          {chats.find(chat => chat.id === activeChatId)?.messages.length > 0 ? (
-            chats.find(chat => chat.id === activeChatId)?.messages.map((msg, index) => (
-              <div key={index} className={`mb-4 p-3 rounded-lg ${msg.role === 'user' ? 'bg-indigo-50 dark:bg-gray-700 ml-auto' : 'bg-green-50 dark:bg-gray-700 mr-auto'} max-w-3/4 shadow-sm`}>
-                <span className={`font-semibold ${msg.role === 'user' ? 'text-indigo-700 dark:text-indigo-400' : 'text-green-700 dark:text-green-400'} block mb-1`}>
-                  {msg.role === 'user' ? t('you') : t('synapseAI')}
-                </span>
-                <p className="text-sm leading-relaxed">{msg.text}</p>
-              </div>
-            ))
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-              <FiMessageSquare size={50} className="mb-4 text-indigo-400" />
-              <p className="text-lg">{t('startNewConversation')}</p>
-              <p className="text-sm">{t('typeMessageToBegin')}</p>
-            </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-
-        <div className="flex flex-col gap-2">
-            {selectedMode && (
-                <div className="flex items-center justify-center bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-sm px-4 py-2 rounded-full w-fit mx-auto shadow-md">
-                    {selectedMode === 'image' && <FiImage className="mr-2" size={16} />}
-                    {selectedMode === 'document' && <FiFileText className="mr-2" size={16} />}
-                    {selectedMode === 'video' && <FiVideo className="mr-2" size={16} />}
-                    <span className="font-medium">{t(selectedMode + 'Mode')}</span>
-                    <button
-                        onClick={handleRemoveMode}
-                        className="ml-2 p-1 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
-                        title={t('clearSelection')}
-                    >
-                        <FiX size={14} />
-                    </button>
-                </div>
-            )}
-            <div className="flex gap-3 items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                <input type="file" onChange={handleFileUpload} className="hidden" id="file-upload" />
-                <label
-                    htmlFor="file-upload"
-                    className="cursor-pointer text-xl p-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title={t('uploaded')}
-                >
-                    <FiUpload />
-                </label>
-
-                <div className="relative">
-                    <button
-                        ref={modeSelectorButtonRef}
-                        onClick={toggleModeSelector}
-                        className="text-xl p-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        title={t('selectMode')}
-                    >
-                        <FiImage />
-                    </button>
-                    {showModeSelectorOptions && (
-                        <div
-                            ref={modeSelectorOptionsRef}
-                            className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 w-40 overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <button
-                                onClick={() => handleModeSelect('image')}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                                <FiImage size={16} /> {t('imageMode')}
-                            </button>
-                            <button
-                                onClick={() => handleModeSelect('document')}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                                <FiFileText size={16} /> {t('documentMode')}
-                            </button>
-                            <button
-                                onClick={() => handleModeSelect('video')}
-                                className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                                <FiVideo size={16} /> {t('videoMode')}
-                            </button>
-                        </div>
+                <AnimatePresence>
+                    {isSidebarExpanded && (
+                        <motion.div className="p-6 border-t border-gray-700/50" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                            <motion.button onClick={handleLogout} className="w-full flex items-center gap-3 text-sm py-3 px-3 rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 border border-transparent hover:border-red-500/30" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <Icon name="logout" /> <span>Logout</span>
+                            </motion.button>
+                        </motion.div>
                     )}
+                </AnimatePresence>
+
+                <motion.button onClick={() => setIsSidebarExpanded(!isSidebarExpanded)} className="absolute -right-3 top-6 w-6 h-6 bg-gray-800 border border-cyan-500/20 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors duration-300" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <motion.div animate={{ rotate: isSidebarExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}><Icon name="chevron-up" size={12} className="text-cyan-400"/></motion.div>
+                </motion.button>
+            </motion.div>
+
+            {/* Chat Options Menu */}
+            <AnimatePresence>
+                {chatMenu.visible && (
+                    <ChatOptionsMenu 
+                        chat={chatMenu.chat} 
+                        position={{ x: chatMenu.x, y: chatMenu.y }} 
+                        onClose={() => setChatMenu({ ...chatMenu, visible: false })} 
+                        onRename={handleStartRename} 
+                        onDelete={handleDeleteChat}
+                        accessToken={accessToken} // ✅ Pass accessToken for export
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col relative z-10 min-h-0">
+                {/* Header */}
+                <motion.div className="flex justify-between items-center p-6 border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-lg" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
+                    <div className="flex items-center space-x-4">
+                        <AnimatePresence>
+                            {activeChat && (
+                                <motion.div className="flex items-center space-x-3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-white">{activeChat.title}</h2>
+                                        <p className="text-xs text-gray-400">AI Assistant • Online</p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                    
+                    <div className="relative" ref={profileMenuRef}>
+                        <motion.button onClick={() => setIsProfileMenuOpen(prev => !prev)} className="relative p-3 rounded-xl bg-gradient-to-r from-gray-700/50 to-gray-600/50 border border-cyan-500/20 shadow-lg hover:shadow-cyan-500/20 transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                                <Icon name="user" size={18} className="text-white"/>
+                            </div>
+                            <motion.div className="absolute top-1 right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+                        </motion.button>
+                    </div>
+                </motion.div>
+
+                {/* Profile panel */}
+                <AnimatePresence>
+                    {isProfileMenuOpen && (
+                        <motion.div className="p-4 border-b border-gray-700/40 bg-gray-900/60 backdrop-blur-md z-10" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.12 }}>
+                            <div className="max-w-4xl mx-auto flex items-start gap-4">
+                                <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                                    <Icon name="user" size={20} className="text-white"/>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-semibold text-white">{user?.full_name || user?.username || 'User'}</p>
+                                            <p className="text-sm text-gray-400">{user?.email}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {/* ✅ CORRECTED SETTINGS BUTTON */}
+                                            <motion.button 
+                                                onClick={() => navigate('/settings')}
+                                                className="px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-gray-700/50 text-sm text-gray-200"
+                                            >
+                                                Settings
+                                            </motion.button>
+                                            <motion.button onClick={handleLogout} className="px-3 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-sm text-red-300">Logout</motion.button>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-2">Manage profile, security, and preferences here.</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Messages container */}
+                <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar min-h-0" style={{ scrollBehavior: 'smooth' }}>
+                    <AnimatePresence>
+                        {activeChat ? (
+                            activeChat.messages.map((msg, index) => {
+                                const msgId = `${activeChat.id}-${index}`;
+                                const isSelected = selectedMsg === msgId;
+                                return (
+                                    <motion.div key={msgId} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.28 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-6`}>
+                                        <div className={`max-w-3xl flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            <motion.div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${ msg.role === 'user' ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gradient-to-r from-purple-500 to-indigo-500' }`} whileHover={{ scale: 1.05 }}>
+                                                {msg.role === 'user' ? <Icon name="user" size={16} className="text-white"/> : <Icon name="zap" size={16} className="text-white"/>}
+                                            </motion.div>
+
+                                            <motion.div data-msg-id={msgId} className={`relative px-6 py-4 rounded-2xl shadow-lg cursor-text select-text group ${ msg.role === 'user' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white' : 'bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-100' } ${isSelected ? 'ring-2 ring-cyan-400/30' : ''}`} whileHover={{ scale: 1.01 }} layout>
+                                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity" style={{ pointerEvents: 'auto' }}>
+                                                    <button onClick={(e) => { e.stopPropagation(); copyMessageToClipboard(msg.text, msgId); }} title="Copy message" className="p-1 rounded-md bg-gray-700/60 hover:bg-gray-700/80">
+                                                        <Icon name="copy" size={14}/>
+                                                    </button>
+                                                </div>
+
+                                                <AnimatePresence>
+                                                {copySuccessId === msgId && (
+                                                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute -top-6 right-3 text-xs bg-green-600/90 px-2 py-1 rounded-md text-white">
+                                                        Copied!
+                                                    </motion.div>
+                                                )}
+                                                </AnimatePresence>
+
+                                                <div className={`text-xs font-medium mb-2 opacity-70 ${ msg.role === 'user' ? 'text-cyan-100' : 'text-cyan-400' }`}>
+                                                    {msg.role === 'user' ? 'You' : 'Synapse AI'}
+                                                </div>
+
+                                                <div className="selectable-text whitespace-pre-wrap break-words" style={{ userSelect: 'text' }}>
+                                                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                                                </div>
+
+                                                <div className={`text-xs mt-2 opacity-50 ${ msg.role === 'user' ? 'text-cyan-100' : 'text-gray-400' }`}>
+                                                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+
+                                            </motion.div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })
+                        ) : (
+                            <motion.div className="flex flex-col items-center justify-center h-full text-center py-20" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
+                                <motion.div className="w-24 h-24 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-3xl flex items-center justify-center mb-6 shadow-2xl" animate={{ rotateY: [0, 360] }} transition={{ rotateY: { duration: 10, repeat: Infinity, ease: "linear" } }}>
+                                    <Icon name="message-square" size={36} className="text-white"/>
+                                </motion.div>
+                                <h3 className="text-2xl font-bold text-white mb-3">Ready to Chat!</h3>
+                                <p className="text-gray-400 text-lg mb-6 max-w-md">Start a new conversation with your AI assistant</p>
+                                <motion.button onClick={handleNewChat} className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300" whileHover={{ scale: 1.05 }}>Start First Chat</motion.button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div ref={chatEndRef} />
                 </div>
 
-                <button
-                    onClick={handleVoiceInput}
-                    className="text-xl p-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title={t('speechNotSupported')}
-                >
-                    <FiMic />
-                </button>
-                <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-                    placeholder={t('typeAMessage')}
-                    className="flex-1 p-3 rounded-lg bg-gray-100 text-black dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                    onClick={handleSend}
-                    className="bg-green-600 px-6 py-3 rounded-lg text-white font-semibold hover:bg-green-700 transition-colors shadow-md"
-                >
-                    {t('send')}
-                </button>
+                {/* Clarification (above input) */}
+                <AnimatePresence>
+                    {clarification && activeChatId && (
+                        <motion.div className="mx-6 mb-4 p-6 bg-gradient-to-r from-gray-800/90 to-gray-700/90 backdrop-blur-lg rounded-2xl border border-cyan-500/30 shadow-2xl z-20" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0"><Icon name="zap" size={20} className="text-white"/></div>
+                                <div className="flex-1">
+                                    <h4 className="text-lg font-semibold text-white mb-2">Need Clarification</h4>
+                                    <p className="text-gray-300 mb-4 leading-relaxed">{clarification.query_text}</p>
+                                    <div className="flex items-center gap-3">
+                                        <input type="text" value={clarificationInput} onChange={(e) => setClarificationInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleClarificationResponse()} placeholder="Type your answer here..." className="flex-grow bg-gray-700/50 text-white placeholder-gray-400 p-3 rounded-lg border border-cyan-500/30 focus:outline-none" autoFocus />
+                                        <motion.button onClick={handleClarificationResponse} className="px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Icon name="send"/></motion.button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Input (sticky) */}
+                <motion.div className="flex-none p-6 border-t border-gray-700/50 bg-gray-900/50 backdrop-blur-lg sticky bottom-0 z-30" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                    <div className="max-w-4xl mx-auto">
+                        <motion.div className="relative bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden" whileFocus={{ borderColor: "rgba(0, 255, 255, 0.5)", boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)" }}>
+                            <div className="flex items-end gap-4 p-4">
+                                <div className="flex-1">
+                                    <motion.textarea value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={activeChatId ? "Type your message..." : "Start a new chat to begin"} className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed min-h-[24px] max-h-32" disabled={!activeChatId || !!clarification} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
+                                </div>
+                                
+                                <motion.button onClick={() => handleSend()} disabled={!activeChatId || !!clarification || !chatInput.trim()} className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${!activeChatId || !!clarification || !chatInput.trim() ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg hover:shadow-xl'}`} whileHover={!activeChatId || !!clarification || !chatInput.trim() ? {} : { scale: 1.05, boxShadow: "0 0 25px rgba(0, 200, 255, 0.4)" }} whileTap={!activeChatId || !!clarification || !chatInput.trim() ? {} : { scale: 0.95 }}>
+                                    <motion.div animate={isTyping ? { rotate: 360 } : {}} transition={isTyping ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}><Icon name="send" size={18}/></motion.div>
+                                </motion.button>
+                            </div>
+
+                            <AnimatePresence>
+                                {isTyping && (
+                                    <motion.div className="px-4 pb-3" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+                                        <div className="flex items-center gap-2 text-xs text-cyan-400">
+                                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><Icon name="zap" size={12}/></motion.div>
+                                            <span>AI is thinking...</span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                        
+                        <motion.div className="flex justify-center mt-4 gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+                            <span className="text-xs text-gray-500 flex items-center gap-2">
+                                <kbd className="px-2 py-1 bg-gray-700/50 rounded border border-gray-600/50 text-xs">Enter</kbd>
+                                <span>to send</span>
+                                <kbd className="px-2 py-1 bg-gray-700/50 rounded border border-gray-600/50 text-xs">Shift + Enter</kbd>
+                                <span>for new line</span>
+                            </span>
+                        </motion.div>
+                    </div>
+                </motion.div>
+
+                {/* Jump to latest floating button */}
+                <AnimatePresence>
+                    {showJumpToLatest && (
+                        <motion.button onClick={scrollToBottom} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.18 }} className="fixed bottom-28 right-8 z-40 bg-cyan-600 hover:bg-cyan-700 p-3 rounded-full shadow-xl">
+                            <Icon name="chevron-down" size={20} className="text-white"/>
+                        </motion.button>
+                    )}
+                </AnimatePresence>
             </div>
+
+            {/* Small CSS */}
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(75,85,99,0.06); border-radius: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.48); border-radius: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.7); }
+                .custom-scrollbar { scroll-behavior: smooth; }
+                .selectable-text { user-select: text; }
+                .font-sans { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+            `}</style>
         </div>
-      </div>
-
-      {showWorkspaceModal && (
-        <WorkspaceModal
-          t={t}
-          newWorkspace={newWorkspace}
-          setNewWorkspace={setNewWorkspace}
-          setShowWorkspaceModal={setShowWorkspaceModal}
-          handleCreateWorkspace={handleCreateWorkspace}
-        />
-      )}
-
-      {chatMenuOpenForId && (
-        <ChatOptionsMenu
-          chatId={chatMenuOpenForId}
-          position={chatMenuPosition}
-          onClose={() => setChatMenuOpenForId(null)}
-          t={t}
-          setRenamingChat={setRenamingChat}
-          handleDelete={handleDelete}
-          handleShare={handleShare}
-          handlePin={handlePin}
-          chatOptionsMenuRef={chatOptionsMenuRef}
-          handleFeedback={handleFeedback}
-        />
-      )}
-    </div>
-  );
+    );
 };
 
 export default Dashboard;
