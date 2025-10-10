@@ -1,0 +1,151 @@
+version: "3.9"
+
+services:
+  # -------------------- FRONTEND --------------------
+  frontend:
+    build:
+      context: ../Synapse-Frontend
+      dockerfile: Dockerfile.dev
+    command: npm run dev
+    volumes:
+      - ../Synapse-Frontend:/app
+      - /app/node_modules
+    ports:
+      - "4173:4173"
+    env_file:
+      - ./.env
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+  # -------------------- BACKEND --------------------
+  backend:
+    build:
+      context: ../Synapse-Backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../Synapse-Backend:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    environment:
+      - TRANSFORMERS_CACHE=/hf_cache
+      - HF_HOME=/hf_cache
+
+  # 🔹 NEW: Flower Monitoring Dashboard 🔹
+  flower:
+    build:
+      context: ../Synapse-Worker
+      dockerfile: Dockerfile.dev
+    container_name: synapse-flower
+    command: celery -A src.worker.app flower --address=0.0.0.0 --port=5555
+    ports:
+      # Access the dashboard at http://localhost:5556
+      - "5556:5555"
+    env_file:
+      - ./.env
+    depends_on:
+      redis:
+        condition: service_started
+
+  # 🔹 REFACTORED: Worker for light, fast tasks 🔹
+
+  worker-cpu:
+    build:
+      context: ../Synapse-Worker
+      dockerfile: Dockerfile.dev
+    container_name: synapse-worker-cpu
+    # This single worker listens to both queues, separated by a comma
+    command: sh -c "celery -A src.worker.app worker -l info -Q cpu_light,cpu_heavy -c 1"
+    volumes:
+      - ../Synapse-Worker:/code
+      - ./hf_cache:/hf_cache
+    env_file:
+      - ./.env
+    user: "1000:1000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    environment:
+      - TRANSFORMERS_CACHE=/hf_cache
+      - HF_HOME=/hf_cache
+      - PYTHONPATH=/code
+      - GIT_PYTHON_REFRESH=quiet
+      - NLTK_DATA=/code/nltk_data
+  # 🔹 CONFIRMED: This worker is correctly configured for the 'gpu' queue.
+  # Uncomment this block when you have a GPU environment.
+  # worker-gpu:
+  #   build:
+  #     context: ../Synapse-Worker
+  #     dockerfile: Dockerfile.gpu.dev
+  #   command: sh -c "mkdir -p /hf_cache && celery -A src.worker.app worker -l info -Q gpu"
+  #   volumes:
+  #     - ../Synapse-Worker:/code
+  #     - worker_cache:/code/.cache
+  #     - hf_cache:/hf_cache
+  #   env_file:
+  #     - ./.env
+  #   runtime: nvidia
+  #   user: "1000:1000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #     qdrant:
+  #       condition: service_started
+  #   environment:
+  #     - TRANSFORMERS_CACHE=/hf_cache
+  #     - HF_HOME=/hf_cache
+  #     - PYTHONPATH=/code
+
+  # -------------------- REDIS --------------------
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  # -------------------- POSTGRES --------------------
+  postgres:
+    image: pgvector/pgvector:pg13
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # -------------------- QDRANT VECTOR DATABASE --------------------
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: synapse-qdrant
+    ports:
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+# -------------------- NAMED VOLUMES --------------------
+volumes:
+  pgdata_dev: {}
+  qdrant_data: {}

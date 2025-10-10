@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install dependencies for hot reloading on Windows
+RUN apk add --no-cache libc6-compat
+
 # Copy package.json and lock file
 COPY package*.json ./
 
@@ -11,8 +14,11 @@ RUN npm install
 # Copy all source code
 COPY . .
 
-# Expose dev server port (usually 3000 or 5173 or 4200 etc.)
-EXPOSE 3000
+# Create the dist directory if it doesn't exist
+RUN mkdir -p dist
+
+# Expose dev server port
+EXPOSE 4173
 
 # Run the frontend dev server with hot reload
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "dev"]

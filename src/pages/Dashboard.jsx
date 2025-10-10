@@ -85,13 +85,13 @@ const ChatOptionsMenu = ({ chat, position, onClose, onRename, onDelete, accessTo
                 >
                     <Icon name="edit" size={14} /> Rename
                 </button>
-                
+
                 {/* ✅ FIX: Moved hover event handlers to this parent div. 
                     This ensures the sub-menu doesn't close when moving the mouse
                     from the "Export" button to the sub-menu options. */}
                 <div
-                    onMouseEnter={() => setShowExportMenu(true)} 
-                    onMouseLeave={() => setShowExportMenu(false)} 
+                    onMouseEnter={() => setShowExportMenu(true)}
+                    onMouseLeave={() => setShowExportMenu(false)}
                     className="relative"
                 >
                     <button className="w-full flex items-center justify-between gap-3 px-3 py-2 text-sm rounded-md hover:bg-gray-700/50 transition-colors duration-200">
@@ -101,18 +101,18 @@ const ChatOptionsMenu = ({ chat, position, onClose, onRename, onDelete, accessTo
                         <span className="text-xs">▶</span>
                     </button>
                     <AnimatePresence>
-                    {showExportMenu && (
-                        <motion.div 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                            className="absolute left-full -top-1 ml-1 w-32 bg-gray-800 rounded-lg shadow-2xl border border-gray-700/50 overflow-hidden"
-                        >
-                           <button onClick={() => handleExport('md')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">Markdown</button>
-                           <button onClick={() => handleExport('csv')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">CSV</button>
-                           <button onClick={() => handleExport('pdf')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">PDF</button>
-                        </motion.div>
-                    )}
+                        {showExportMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                className="absolute left-full -top-1 ml-1 w-32 bg-gray-800 rounded-lg shadow-2xl border border-gray-700/50 overflow-hidden"
+                            >
+                                <button onClick={() => handleExport('md')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">Markdown</button>
+                                <button onClick={() => handleExport('csv')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">CSV</button>
+                                <button onClick={() => handleExport('pdf')} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700/50">PDF</button>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
                 </div>
                 <div className="h-px bg-gray-700/50 my-1"></div>
@@ -132,7 +132,7 @@ const ChatOptionsMenu = ({ chat, position, onClose, onRename, onDelete, accessTo
 const Dashboard = () => {
     const navigate = useNavigate();
     const { user, logout, isAuthenticated, apiCall, accessToken } = useAuth();
-    
+
     // --- State Management ---
     const [chats, setChats] = useState([]);
     const [activeChatId, setActiveChatId] = useState(null);
@@ -143,6 +143,7 @@ const Dashboard = () => {
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
     const [isTyping, setIsTyping] = useState(false);
     const [isPersonalizationEnabled, setIsPersonalizationEnabled] = useState(true);
+    const [chatMode, setChatMode] = useState('personalization'); // 'personalization' | 'tools' | 'both'
 
     // UI state
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -180,9 +181,9 @@ const Dashboard = () => {
                     })),
                     timestamp: new Date(chat.updated_at)
                 })).sort((a, b) => b.timestamp - a.timestamp);
-                
+
                 setChats(formattedChats);
-                
+
                 if (formattedChats.length > 0 && !activeChatId) {
                     setActiveChatId(formattedChats[0].id);
                 }
@@ -235,25 +236,25 @@ const Dashboard = () => {
             }
 
             const targetConversationId = data.conversation_id || jobMapRef.current[data.job_id] || activeChatIdRef.current;
-            
+
             if (!targetConversationId) {
                 console.warn(`[${now()}] WS: Could not resolve a target conversation ID for job ${data.job_id}.`);
                 return;
             }
-            
+
             if (data.status === 'COMPLETED' && data.result) {
                 const finalAnswer = data.result.response;
                 setClarification(null);
                 setIsTyping(false);
-                
+
                 setChats(prevChats => prevChats.map(chat => {
                     if (chat.id === targetConversationId) {
                         const newMessages = [...chat.messages];
                         const lastMessageIndex = newMessages.length - 1;
                         if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
-                            newMessages[lastMessageIndex] = { role: 'assistant', text: finalAnswer };
+                            newMessages[lastMessageIndex] = { role: 'assistant', text: finalAnswer, mode: chatMode };
                         } else {
-                            newMessages.push({ role: 'assistant', text: finalAnswer });
+                            newMessages.push({ role: 'assistant', text: finalAnswer, mode: chatMode });
                         }
                         return { ...chat, messages: newMessages };
                     }
@@ -268,9 +269,9 @@ const Dashboard = () => {
                         if (data.initial_response) {
                             const lastMessageIndex = newMessages.length - 1;
                             if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
-                                newMessages[lastMessageIndex] = { role: 'assistant', text: data.initial_response };
+                                newMessages[lastMessageIndex] = { role: 'assistant', text: data.initial_response, mode: chatMode };
                             } else {
-                                newMessages.push({ role: 'assistant', text: data.initial_response });
+                                newMessages.push({ role: 'assistant', text: data.initial_response, mode: chatMode });
                             }
                         }
                         return { ...chat, messages: newMessages };
@@ -288,17 +289,17 @@ const Dashboard = () => {
         };
     }, [isAuthenticated, user, accessToken]);
 
-    useEffect(() => { 
-        if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); 
+    useEffect(() => {
+        if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }, [chats, activeChatId, clarification]);
 
     useEffect(() => { document.documentElement.className = theme; }, [theme]);
 
     const handleNewChat = () => {
         const newId = crypto.randomUUID();
-        const newChat = { 
-            id: newId, 
-            title: `New Chat`, 
+        const newChat = {
+            id: newId,
+            title: `New Chat`,
             messages: [{ role: 'assistant', text: "Hello! How can I help you today?" }],
             timestamp: new Date()
         };
@@ -311,66 +312,108 @@ const Dashboard = () => {
         const content = messageText.trim();
         if (!content || !activeChatId) return;
 
-        const userMsg = { role: 'user', text: content };
+        const userMsg = { role: 'user', text: content, mode: chatMode };
         const thinkingMsg = { role: 'assistant', text: '...', thinking: true };
-        const tempActiveChatId = activeChatId; 
+        const tempActiveChatId = activeChatId;
         setChatInput('');
         setClarification(null);
         setIsTyping(true);
 
-        setChats(prev => prev.map(chat => 
-            chat.id === tempActiveChatId 
-                ? { ...chat, messages: [...chat.messages, userMsg, thinkingMsg] } 
+        setChats(prev => prev.map(chat =>
+            chat.id === tempActiveChatId
+                ? { ...chat, messages: [...chat.messages, userMsg, thinkingMsg] }
                 : chat
         ));
 
         try {
-            const response = await apiCall(`/api/v1/conversations/${tempActiveChatId}/messages`, {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    content: content,
-                    is_personalization_enabled: isPersonalizationEnabled
-                }),
-            });
+            // Handle different chat modes
+            if (chatMode === 'tools') {
+                // Tools mode: Call local MCP API server
+                const mcpResponse = await fetch('http://localhost:8001/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: content,
+                        user_id: user?.uuid || 'anonymous'
+                    }),
+                });
 
-            if (!response.ok) throw new Error('Failed to send message.');
-            
-            const createdMessage = await response.json();
-            if (createdMessage.job_id) {
-                jobMapRef.current[createdMessage.job_id] = createdMessage.conversation_id || tempActiveChatId;
+                if (!mcpResponse.ok) {
+                    throw new Error(`MCP API error: ${mcpResponse.status}`);
+                }
+
+                const mcpResult = await mcpResponse.json();
+
+                // Update UI with MCP response
+                setIsTyping(false);
+                setChats(prev => prev.map(chat => {
+                    if (chat.id === tempActiveChatId) {
+                        const newMessages = [...chat.messages];
+                        const lastMessageIndex = newMessages.length - 1;
+                        if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
+                            newMessages[lastMessageIndex] = {
+                                role: 'assistant',
+                                text: mcpResult.response,
+                                mode: chatMode
+                            };
+                        }
+                        return { ...chat, messages: newMessages };
+                    }
+                    return chat;
+                }));
+
+            } else {
+                // Personalization or Both mode: Use backend API
+                const response = await apiCall(`/api/v1/conversations/${tempActiveChatId}/messages`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        content: content,
+                        is_personalization_enabled: chatMode === 'personalization' || chatMode === 'both',
+                        chat_mode: chatMode
+                    }),
+                });
+
+                if (!response.ok) throw new Error('Failed to send message.');
+
+                const createdMessage = await response.json();
+                if (createdMessage.job_id) {
+                    jobMapRef.current[createdMessage.job_id] = createdMessage.conversation_id || tempActiveChatId;
+                }
             }
         } catch (error) {
             console.error(`[${now()}] handleSend: Error:`, error);
             const errorMsg = { role: 'assistant', text: `Error: ${error.message}` };
             setIsTyping(false);
             setChats(prev => prev.map(chat => {
-                if (chat.id === tempActiveChatId) { 
+                if (chat.id === tempActiveChatId) {
                     return { ...chat, messages: chat.messages.map(msg => msg.thinking ? errorMsg : msg) };
                 }
                 return chat;
             }));
         }
     };
-    
+
     const handleClarificationResponse = () => {
         const responseText = clarificationInput.trim();
         if (!ws.current || ws.current.readyState !== WebSocket.OPEN || !responseText) {
             console.error("WebSocket is not connected or input is empty.");
             return;
         }
-        
+
         ws.current.send(JSON.stringify({
             type: "clarification_response",
             job_id: clarification.job_id,
             response: responseText
         }));
-        
-        const userClarificationMsg = { role: 'user', text: responseText };
+
+        const userClarificationMsg = { role: 'user', text: responseText, mode: chatMode };
         const thinkingMsg = { role: 'assistant', text: '...', thinking: true };
-        
-        setChats(prev => prev.map(chat => 
-            chat.id === activeChatId 
-                ? { ...chat, messages: [...chat.messages, userClarificationMsg, thinkingMsg] } 
+
+        setChats(prev => prev.map(chat =>
+            chat.id === activeChatId
+                ? { ...chat, messages: [...chat.messages, userClarificationMsg, thinkingMsg] }
                 : chat
         ));
         setClarification(null);
@@ -382,7 +425,7 @@ const Dashboard = () => {
         if (ws.current) ws.current.close();
         await logout();
     };
-    
+
     const handleOpenChatMenu = (event, chat) => {
         event.preventDefault();
         event.stopPropagation();
@@ -459,7 +502,7 @@ const Dashboard = () => {
 
     const activeChat = chats.find(chat => chat.id === activeChatId);
     const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-    
+
     if (!isAuthenticated) return null;
 
     return (
@@ -467,18 +510,18 @@ const Dashboard = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800 pointer-events-none">
                 <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0"
-                         style={{
-                           backgroundImage: `
+                        style={{
+                            backgroundImage: `
                              linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
                              linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px)
                            `,
-                           backgroundSize: '50px 50px'
-                         }}>
+                            backgroundSize: '50px 50px'
+                        }}>
                     </div>
                 </div>
             </div>
 
-            <motion.div 
+            <motion.div
                 className={`relative z-20 bg-gradient-to-b from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-lg border-r border-cyan-500/20 flex flex-col justify-between shadow-2xl transition-all duration-500 ease-out ${isSidebarExpanded ? 'w-80' : 'w-20'} min-h-0`}
                 initial={false}
                 animate={{ width: isSidebarExpanded ? 320 : 80 }}
@@ -487,7 +530,7 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between mb-8">
                         <AnimatePresence>
                             {isSidebarExpanded && (
-                                <motion.div 
+                                <motion.div
                                     className="flex items-center space-x-3"
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -496,7 +539,7 @@ const Dashboard = () => {
                                 >
                                     <motion.div className="relative" whileHover={{ scale: 1.05 }}>
                                         <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center relative overflow-hidden group">
-                                            <Icon name="zap" size={20} className="text-white relative z-10"/>
+                                            <Icon name="zap" size={20} className="text-white relative z-10" />
                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 group-hover:translate-x-full transition-transform duration-700"></div>
                                         </div>
                                     </motion.div>
@@ -507,14 +550,14 @@ const Dashboard = () => {
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        
+
                         <motion.button onClick={toggleTheme} className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 transition-all duration-300 border border-cyan-500/20" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                             <motion.div animate={{ rotate: theme === 'dark' ? 0 : 180 }} transition={{ duration: 0.5 }}>
-                                {theme === 'light' ? <Icon name="moon" size={18} className="text-cyan-400"/> : <Icon name="sun" size={18} className="text-cyan-400"/>}
+                                {theme === 'light' ? <Icon name="moon" size={18} className="text-cyan-400" /> : <Icon name="sun" size={18} className="text-cyan-400" />}
                             </motion.div>
                         </motion.button>
                     </div>
-                    
+
                     <motion.button onClick={handleNewChat} className={`w-full flex items-center gap-3 text-white py-4 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 shadow-lg relative overflow-hidden group transition-all duration-300 ${!isSidebarExpanded && 'justify-center'}`} whileHover={{ scale: 1.02 }}>
                         <motion.div whileHover={{ rotate: 90 }} transition={{ duration: 0.3 }}><Icon name="plus" size={20} /></motion.div>
                         <AnimatePresence>{isSidebarExpanded && (<motion.span className="font-medium" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>New Chat</motion.span>)}</AnimatePresence>
@@ -524,10 +567,25 @@ const Dashboard = () => {
                     <AnimatePresence>
                         {isSidebarExpanded && (
                             <motion.div className="mt-4" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
-                                <motion.button onClick={() => setIsPersonalizationEnabled(!isPersonalizationEnabled)} className={`w-full flex items-center gap-3 text-sm py-3 px-3 rounded-lg ${isPersonalizationEnabled ? 'bg-gradient-to-r from-green-600/20 to-green-700/20 text-green-400' : 'bg-gray-700/20 text-gray-400'}`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                    {isPersonalizationEnabled ? <Icon name="toggle-right" size={20} className="text-green-400"/> : <Icon name="toggle-left" size={20} className="text-gray-400"/>}
-                                    <span className="font-medium">Personalization Engine</span>
-                                </motion.button>
+                                <div className="w-full bg-gray-800/30 rounded-lg p-3 border border-gray-700/50">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-xs font-medium text-cyan-300/80">Chat Mode</span>
+                                    </div>
+                                    <select
+                                        value={chatMode}
+                                        onChange={(e) => setChatMode(e.target.value)}
+                                        className="w-full bg-gray-700/50 text-white text-sm py-2 px-3 rounded-lg border border-gray-600/50 focus:outline-none focus:border-cyan-500/50"
+                                    >
+                                        <option value="personalization">🧠 Personalization</option>
+                                        <option value="tools">🔧 Tools</option>
+                                        <option value="both">🚀 Both</option>
+                                    </select>
+                                    <div className="text-xs text-gray-400 mt-2">
+                                        {chatMode === 'personalization' && '💡 I\'ll remember our conversation and learn from it'}
+                                        {chatMode === 'tools' && '⚡ I\'ll execute tools immediately without memory'}
+                                        {chatMode === 'both' && '🌟 I\'ll use tools with conversation context'}
+                                    </div>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -536,13 +594,13 @@ const Dashboard = () => {
                         {isSidebarExpanded && (
                             <motion.div className="mt-6 flex-grow flex flex-col min-h-0" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
                                 <div className="flex items-center justify-between py-2 px-1 mb-3">
-                                    <span className="flex items-center gap-2 text-cyan-300/80 text-sm font-medium"><Icon name="clock" size={16}/> Recent Chats</span>
+                                    <span className="flex items-center gap-2 text-cyan-300/80 text-sm font-medium"><Icon name="clock" size={16} /> Recent Chats</span>
                                 </div>
 
                                 <div className="flex-grow overflow-y-auto custom-scrollbar space-y-2 pr-2 min-h-0" style={{ scrollBehavior: 'smooth' }}>
                                     <AnimatePresence>
                                         {chats.length > 0 ? chats.map((chat, index) => (
-                                            <motion.div key={chat.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.28, delay: index * 0.03 }} className={`p-3 rounded-lg transition-all duration-300 relative group ${ activeChatId === chat.id ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30' : 'hover:bg-gray-700/50 border border-transparent' }`}>
+                                            <motion.div key={chat.id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.28, delay: index * 0.03 }} className={`p-3 rounded-lg transition-all duration-300 relative group ${activeChatId === chat.id ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30' : 'hover:bg-gray-700/50 border border-transparent'}`}>
                                                 <div className="flex items-center space-x-3" onClick={() => renamingChatId !== chat.id && setActiveChatId(chat.id)}>
                                                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${activeChatId === chat.id ? 'bg-cyan-400' : 'bg-gray-500'}`} />
                                                     <div className="flex-1 min-w-0">
@@ -551,13 +609,13 @@ const Dashboard = () => {
                                                         ) : (
                                                             <>
                                                                 <p className="text-sm font-medium text-white truncate cursor-pointer">{chat.title}</p>
-                                                                <p className="text-xs text-gray-400 truncate cursor-pointer">{chat.messages.length > 1 ? chat.messages[chat.messages.length - 1]?.text.substring(0,30) + '...' : 'Start a conversation...'}</p>
+                                                                <p className="text-xs text-gray-400 truncate cursor-pointer">{chat.messages.length > 1 ? chat.messages[chat.messages.length - 1]?.text.substring(0, 30) + '...' : 'Start a conversation...'}</p>
                                                             </>
                                                         )}
                                                     </div>
                                                     {renamingChatId !== chat.id && (
                                                         <button onClick={(e) => handleOpenChatMenu(e, chat)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-gray-600/50 ml-auto flex-shrink-0" title="Chat options">
-                                                            <Icon name="more-vertical" size={16}/>
+                                                            <Icon name="more-vertical" size={16} />
                                                         </button>
                                                     )}
                                                 </div>
@@ -565,7 +623,7 @@ const Dashboard = () => {
                                             </motion.div>
                                         )) : (
                                             <motion.div className="text-center py-8 text-gray-400" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                                <Icon name="message-square" size={32} className="mx-auto mb-3 opacity-50"/>
+                                                <Icon name="message-square" size={32} className="mx-auto mb-3 opacity-50" />
                                                 <p className="text-sm">No previous chats yet.</p>
                                             </motion.div>
                                         )}
@@ -587,18 +645,18 @@ const Dashboard = () => {
                 </AnimatePresence>
 
                 <motion.button onClick={() => setIsSidebarExpanded(!isSidebarExpanded)} className="absolute -right-3 top-6 w-6 h-6 bg-gray-800 border border-cyan-500/20 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors duration-300" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <motion.div animate={{ rotate: isSidebarExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}><Icon name="chevron-up" size={12} className="text-cyan-400"/></motion.div>
+                    <motion.div animate={{ rotate: isSidebarExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}><Icon name="chevron-up" size={12} className="text-cyan-400" /></motion.div>
                 </motion.button>
             </motion.div>
 
             {/* Chat Options Menu */}
             <AnimatePresence>
                 {chatMenu.visible && (
-                    <ChatOptionsMenu 
-                        chat={chatMenu.chat} 
-                        position={{ x: chatMenu.x, y: chatMenu.y }} 
-                        onClose={() => setChatMenu({ ...chatMenu, visible: false })} 
-                        onRename={handleStartRename} 
+                    <ChatOptionsMenu
+                        chat={chatMenu.chat}
+                        position={{ x: chatMenu.x, y: chatMenu.y }}
+                        onClose={() => setChatMenu({ ...chatMenu, visible: false })}
+                        onRename={handleStartRename}
                         onDelete={handleDeleteChat}
                         accessToken={accessToken} // ✅ Pass accessToken for export
                     />
@@ -622,11 +680,11 @@ const Dashboard = () => {
                             )}
                         </AnimatePresence>
                     </div>
-                    
+
                     <div className="relative" ref={profileMenuRef}>
                         <motion.button onClick={() => setIsProfileMenuOpen(prev => !prev)} className="relative p-3 rounded-xl bg-gradient-to-r from-gray-700/50 to-gray-600/50 border border-cyan-500/20 shadow-lg hover:shadow-cyan-500/20 transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                             <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                                <Icon name="user" size={18} className="text-white"/>
+                                <Icon name="user" size={18} className="text-white" />
                             </div>
                             <motion.div className="absolute top-1 right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
                         </motion.button>
@@ -639,7 +697,7 @@ const Dashboard = () => {
                         <motion.div className="p-4 border-b border-gray-700/40 bg-gray-900/60 backdrop-blur-md z-10" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.12 }}>
                             <div className="max-w-4xl mx-auto flex items-start gap-4">
                                 <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
-                                    <Icon name="user" size={20} className="text-white"/>
+                                    <Icon name="user" size={20} className="text-white" />
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between">
@@ -649,7 +707,7 @@ const Dashboard = () => {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {/* ✅ CORRECTED SETTINGS BUTTON */}
-                                            <motion.button 
+                                            <motion.button
                                                 onClick={() => navigate('/settings')}
                                                 className="px-3 py-2 rounded-lg bg-gray-800/60 hover:bg-gray-700/50 text-sm text-gray-200"
                                             >
@@ -675,34 +733,42 @@ const Dashboard = () => {
                                 return (
                                     <motion.div key={msgId} initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.28 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-6`}>
                                         <div className={`max-w-3xl flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                            <motion.div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${ msg.role === 'user' ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gradient-to-r from-purple-500 to-indigo-500' }`} whileHover={{ scale: 1.05 }}>
-                                                {msg.role === 'user' ? <Icon name="user" size={16} className="text-white"/> : <Icon name="zap" size={16} className="text-white"/>}
+                                            <motion.div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-gradient-to-r from-purple-500 to-indigo-500'}`} whileHover={{ scale: 1.05 }}>
+                                                {msg.role === 'user' ? <Icon name="user" size={16} className="text-white" /> : <Icon name="zap" size={16} className="text-white" />}
                                             </motion.div>
 
-                                            <motion.div data-msg-id={msgId} className={`relative px-6 py-4 rounded-2xl shadow-lg cursor-text select-text group ${ msg.role === 'user' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white' : 'bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-100' } ${isSelected ? 'ring-2 ring-cyan-400/30' : ''}`} whileHover={{ scale: 1.01 }} layout>
+                                            <motion.div data-msg-id={msgId} className={`relative px-6 py-4 rounded-2xl shadow-lg cursor-text select-text group ${msg.role === 'user' ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white' : 'bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 text-gray-100'} ${isSelected ? 'ring-2 ring-cyan-400/30' : ''}`} whileHover={{ scale: 1.01 }} layout>
                                                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity" style={{ pointerEvents: 'auto' }}>
                                                     <button onClick={(e) => { e.stopPropagation(); copyMessageToClipboard(msg.text, msgId); }} title="Copy message" className="p-1 rounded-md bg-gray-700/60 hover:bg-gray-700/80">
-                                                        <Icon name="copy" size={14}/>
+                                                        <Icon name="copy" size={14} />
                                                     </button>
                                                 </div>
 
                                                 <AnimatePresence>
-                                                {copySuccessId === msgId && (
-                                                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute -top-6 right-3 text-xs bg-green-600/90 px-2 py-1 rounded-md text-white">
-                                                        Copied!
-                                                    </motion.div>
-                                                )}
+                                                    {copySuccessId === msgId && (
+                                                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }} className="absolute -top-6 right-3 text-xs bg-green-600/90 px-2 py-1 rounded-md text-white">
+                                                            Copied!
+                                                        </motion.div>
+                                                    )}
                                                 </AnimatePresence>
 
-                                                <div className={`text-xs font-medium mb-2 opacity-70 ${ msg.role === 'user' ? 'text-cyan-100' : 'text-cyan-400' }`}>
-                                                    {msg.role === 'user' ? 'You' : 'Synapse AI'}
+                                                <div className={`text-xs font-medium mb-2 opacity-70 flex items-center gap-2 ${msg.role === 'user' ? 'text-cyan-100' : 'text-cyan-400'}`}>
+                                                    <span>{msg.role === 'user' ? 'You' : 'Synapse AI'}</span>
+                                                    {msg.mode && (
+                                                        <span className={`text-xs px-2 py-1 rounded ${msg.mode === 'personalization' ? 'bg-purple-500/20 text-purple-300' :
+                                                            msg.mode === 'tools' ? 'bg-blue-500/20 text-blue-300' :
+                                                                'bg-green-500/20 text-green-300'
+                                                            }`}>
+                                                            {msg.mode === 'personalization' ? '🧠' : msg.mode === 'tools' ? '🔧' : '🚀'} {msg.mode}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <div className="selectable-text whitespace-pre-wrap break-words" style={{ userSelect: 'text' }}>
                                                     <p className="text-sm leading-relaxed">{msg.text}</p>
                                                 </div>
 
-                                                <div className={`text-xs mt-2 opacity-50 ${ msg.role === 'user' ? 'text-cyan-100' : 'text-gray-400' }`}>
+                                                <div className={`text-xs mt-2 opacity-50 ${msg.role === 'user' ? 'text-cyan-100' : 'text-gray-400'}`}>
                                                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
 
@@ -714,7 +780,7 @@ const Dashboard = () => {
                         ) : (
                             <motion.div className="flex flex-col items-center justify-center h-full text-center py-20" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
                                 <motion.div className="w-24 h-24 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-3xl flex items-center justify-center mb-6 shadow-2xl" animate={{ rotateY: [0, 360] }} transition={{ rotateY: { duration: 10, repeat: Infinity, ease: "linear" } }}>
-                                    <Icon name="message-square" size={36} className="text-white"/>
+                                    <Icon name="message-square" size={36} className="text-white" />
                                 </motion.div>
                                 <h3 className="text-2xl font-bold text-white mb-3">Ready to Chat!</h3>
                                 <p className="text-gray-400 text-lg mb-6 max-w-md">Start a new conversation with your AI assistant</p>
@@ -731,13 +797,13 @@ const Dashboard = () => {
                     {clarification && activeChatId && (
                         <motion.div className="mx-6 mb-4 p-6 bg-gradient-to-r from-gray-800/90 to-gray-700/90 backdrop-blur-lg rounded-2xl border border-cyan-500/30 shadow-2xl z-20" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                             <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0"><Icon name="zap" size={20} className="text-white"/></div>
+                                <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0"><Icon name="zap" size={20} className="text-white" /></div>
                                 <div className="flex-1">
                                     <h4 className="text-lg font-semibold text-white mb-2">Need Clarification</h4>
                                     <p className="text-gray-300 mb-4 leading-relaxed">{clarification.query_text}</p>
                                     <div className="flex items-center gap-3">
                                         <input type="text" value={clarificationInput} onChange={(e) => setClarificationInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleClarificationResponse()} placeholder="Type your answer here..." className="flex-grow bg-gray-700/50 text-white placeholder-gray-400 p-3 rounded-lg border border-cyan-500/30 focus:outline-none" autoFocus />
-                                        <motion.button onClick={handleClarificationResponse} className="px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Icon name="send"/></motion.button>
+                                        <motion.button onClick={handleClarificationResponse} className="px-5 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-medium shadow-lg transition-all duration-300" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}><Icon name="send" /></motion.button>
                                     </div>
                                 </div>
                             </div>
@@ -753,9 +819,9 @@ const Dashboard = () => {
                                 <div className="flex-1">
                                     <motion.textarea value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={activeChatId ? "Type your message..." : "Start a new chat to begin"} className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed min-h-[24px] max-h-32" disabled={!activeChatId || !!clarification} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
                                 </div>
-                                
+
                                 <motion.button onClick={() => handleSend()} disabled={!activeChatId || !!clarification || !chatInput.trim()} className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${!activeChatId || !!clarification || !chatInput.trim() ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg hover:shadow-xl'}`} whileHover={!activeChatId || !!clarification || !chatInput.trim() ? {} : { scale: 1.05, boxShadow: "0 0 25px rgba(0, 200, 255, 0.4)" }} whileTap={!activeChatId || !!clarification || !chatInput.trim() ? {} : { scale: 0.95 }}>
-                                    <motion.div animate={isTyping ? { rotate: 360 } : {}} transition={isTyping ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}><Icon name="send" size={18}/></motion.div>
+                                    <motion.div animate={isTyping ? { rotate: 360 } : {}} transition={isTyping ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}><Icon name="send" size={18} /></motion.div>
                                 </motion.button>
                             </div>
 
@@ -763,14 +829,14 @@ const Dashboard = () => {
                                 {isTyping && (
                                     <motion.div className="px-4 pb-3" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
                                         <div className="flex items-center gap-2 text-xs text-cyan-400">
-                                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><Icon name="zap" size={12}/></motion.div>
+                                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}><Icon name="zap" size={12} /></motion.div>
                                             <span>AI is thinking...</span>
                                         </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </motion.div>
-                        
+
                         <motion.div className="flex justify-center mt-4 gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
                             <span className="text-xs text-gray-500 flex items-center gap-2">
                                 <kbd className="px-2 py-1 bg-gray-700/50 rounded border border-gray-600/50 text-xs">Enter</kbd>
@@ -786,7 +852,7 @@ const Dashboard = () => {
                 <AnimatePresence>
                     {showJumpToLatest && (
                         <motion.button onClick={scrollToBottom} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.18 }} className="fixed bottom-28 right-8 z-40 bg-cyan-600 hover:bg-cyan-700 p-3 rounded-full shadow-xl">
-                            <Icon name="chevron-down" size={20} className="text-white"/>
+                            <Icon name="chevron-down" size={20} className="text-white" />
                         </motion.button>
                     )}
                 </AnimatePresence>

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { FaMicrophone, FaPaperPlane, FaUpload, FaFileAlt, FaImage, FaVideo } from 'react-icons/fa';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const ChatInput = ({ sendMessage, handleVoiceInput, darkMode }) => {
+const ChatInput = ({ sendMessage, handleVoiceInput, darkMode, chatMode }) => {
   const [input, setInput] = useState('');
   const [mode, setMode] = useState(null);
   const fileInputRef = useRef(null);
@@ -81,7 +81,7 @@ const ChatInput = ({ sendMessage, handleVoiceInput, darkMode }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyPress}
-          placeholder={`Type your message${mode ? ` with ${mode}` : ''}...`}
+          placeholder={`Type your message${mode ? ` with ${mode}` : ''} in ${chatMode} mode...`}
         />
         <motion.button
           whileHover={{ scale: 1.05 }}
