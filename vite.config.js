@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 4173,
+    base: process.env.VITE_BASE_URL || '/Synapse-FrontEnd'
     // Note: Proxy removed for Vercel deployment compatibility
     // API calls now use environment variables (VITE_API_BASE_URL)
   },
