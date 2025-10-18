@@ -99,8 +99,8 @@ const Dashboard = () => {
             return;
         }
 
-        const API_BASE = 'http://localhost:8000';
-        const wsUrl = API_BASE.replace(/^http/, 'ws');
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const wsUrl = import.meta.env.VITE_WS_BASE_URL || API_BASE.replace(/^http/, 'ws');
         const socket = new WebSocket(`${wsUrl}/ws/${user.uuid}?token=${accessToken}`);
         ws.current = socket;
 

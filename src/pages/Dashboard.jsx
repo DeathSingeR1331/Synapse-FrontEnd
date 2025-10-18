@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import ResumeBuilder from '../components/ResumeBuilder';
 
 // --- Icon Component ---
 const Icon = ({ name, size = 16, className = "" }) => {
@@ -24,6 +25,7 @@ const Icon = ({ name, size = 16, className = "" }) => {
         'trash-2': <><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></>,
         'copy': <><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></>,
         'download': <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></>,
+        'file-text': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></>,
     };
     return (
         <svg
@@ -153,6 +155,7 @@ const Dashboard = () => {
     const [selectedMsg, setSelectedMsg] = useState(null);
     const [copySuccessId, setCopySuccessId] = useState(null);
     const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+    const [isResumeBuilderOpen, setIsResumeBuilderOpen] = useState(false);
 
     // --- Refs ---
     const ws = useRef(null);
@@ -214,8 +217,8 @@ const Dashboard = () => {
             return;
         }
 
-        const API_BASE = 'http://localhost:8000';
-        const wsUrl = API_BASE.replace(/^http/, 'ws');
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const wsUrl = import.meta.env.VITE_WS_BASE_URL || API_BASE.replace(/^http/, 'ws');
         const socket = new WebSocket(`${wsUrl}/ws/${user.uuid}?token=${accessToken}`);
         ws.current = socket;
 
@@ -329,40 +332,76 @@ const Dashboard = () => {
             // Handle different chat modes
             if (chatMode === 'tools') {
                 // Tools mode: Call local MCP API server
-                const mcpResponse = await fetch('http://localhost:8001/query', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query: content,
-                        user_id: user?.uuid || 'anonymous'
-                    }),
-                });
+                try {
+                    const mcpResponse = await fetch(`${import.meta.env.VITE_MCP_API_URL || 'http://localhost:8001'}/query`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: content,
+                            user_id: user?.uuid || 'anonymous'
+                        }),
+                    });
 
-                if (!mcpResponse.ok) {
-                    throw new Error(`MCP API error: ${mcpResponse.status}`);
-                }
-
-                const mcpResult = await mcpResponse.json();
-
-                // Update UI with MCP response
-                setIsTyping(false);
-                setChats(prev => prev.map(chat => {
-                    if (chat.id === tempActiveChatId) {
-                        const newMessages = [...chat.messages];
-                        const lastMessageIndex = newMessages.length - 1;
-                        if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
-                            newMessages[lastMessageIndex] = {
-                                role: 'assistant',
-                                text: mcpResult.response,
-                                mode: chatMode
-                            };
-                        }
-                        return { ...chat, messages: newMessages };
+                    if (!mcpResponse.ok) {
+                        throw new Error(`MCP API error: ${mcpResponse.status}`);
                     }
-                    return chat;
-                }));
+
+                    const mcpResult = await mcpResponse.json();
+
+                    // Update UI with MCP response
+                    setIsTyping(false);
+                    setChats(prev => prev.map(chat => {
+                        if (chat.id === tempActiveChatId) {
+                            const newMessages = [...chat.messages];
+                            const lastMessageIndex = newMessages.length - 1;
+                            if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
+                                newMessages[lastMessageIndex] = {
+                                    role: 'assistant',
+                                    text: mcpResult.response,
+                                    mode: chatMode
+                                };
+                            }
+                            return { ...chat, messages: newMessages };
+                        }
+                        return chat;
+                    }));
+                } catch (mcpError) {
+                    // If MCP server is not available, fall back to backend API
+                    console.warn('MCP server not available, falling back to backend API:', mcpError);
+                    
+                    // Use backend API as fallback
+                    const response = await apiCall(`/api/v1/conversations/${tempActiveChatId}/messages`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            content: content,
+                            role: 'user'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Backend API error: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    setIsTyping(false);
+                    setChats(prev => prev.map(chat => {
+                        if (chat.id === tempActiveChatId) {
+                            const newMessages = [...chat.messages];
+                            const lastMessageIndex = newMessages.length - 1;
+                            if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].thinking) {
+                                newMessages[lastMessageIndex] = {
+                                    role: 'assistant',
+                                    text: result.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
+                                    mode: chatMode
+                                };
+                            }
+                            return { ...chat, messages: newMessages };
+                        }
+                        return chat;
+                    }));
+                }
 
             } else {
                 // Personalization or Both mode: Use backend API
@@ -384,7 +423,20 @@ const Dashboard = () => {
             }
         } catch (error) {
             console.error(`[${now()}] handleSend: Error:`, error);
-            const errorMsg = { role: 'assistant', text: `Error: ${error.message}` };
+            
+            // Provide user-friendly error messages
+            let errorMessage = 'I apologize, but I encountered an issue processing your request. ';
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage += 'Please check your internet connection and try again.';
+            } else if (error.message.includes('401')) {
+                errorMessage += 'Please log in again to continue.';
+            } else if (error.message.includes('500')) {
+                errorMessage += 'The server is temporarily unavailable. Please try again in a moment.';
+            } else {
+                errorMessage += 'Please try again or contact support if the issue persists.';
+            }
+            
+            const errorMsg = { role: 'assistant', text: errorMessage };
             setIsTyping(false);
             setChats(prev => prev.map(chat => {
                 if (chat.id === tempActiveChatId) {
@@ -636,7 +688,15 @@ const Dashboard = () => {
 
                 <AnimatePresence>
                     {isSidebarExpanded && (
-                        <motion.div className="p-6 border-t border-gray-700/50" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                        <motion.div className="p-6 border-t border-gray-700/50 space-y-3" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                            <motion.button 
+                                onClick={() => setIsResumeBuilderOpen(true)} 
+                                className="w-full flex items-center gap-3 text-sm py-3 px-3 rounded-lg hover:bg-cyan-500/10 hover:text-cyan-400 transition-all duration-300 border border-transparent hover:border-cyan-500/30" 
+                                whileHover={{ scale: 1.02 }} 
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <Icon name="file-text" /> <span>Resume Builder</span>
+                            </motion.button>
                             <motion.button onClick={handleLogout} className="w-full flex items-center gap-3 text-sm py-3 px-3 rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-all duration-300 border border-transparent hover:border-red-500/30" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 <Icon name="logout" /> <span>Logout</span>
                             </motion.button>
@@ -857,6 +917,12 @@ const Dashboard = () => {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Resume Builder Modal */}
+            <ResumeBuilder 
+                isOpen={isResumeBuilderOpen} 
+                onClose={() => setIsResumeBuilderOpen(false)} 
+            />
 
             {/* Small CSS */}
             <style>{`

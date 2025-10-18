@@ -1,0 +1,40 @@
+# ===========================================
+# SYNAPSE FRONTEND - PRODUCTION ENVIRONMENT
+# ===========================================
+# This file contains production-ready environment variables
+# for free cloud deployment (Railway + Vercel)
+
+# ===========================================
+# API CONFIGURATION (Railway Backend)
+# ===========================================
+VITE_API_BASE_URL=https://synapse-backend.railway.app
+VITE_WS_BASE_URL=wss://synapse-backend.railway.app
+VITE_MCP_API_URL=https://synapse-mcp.railway.app
+
+# ===========================================
+# GOOGLE OAUTH CONFIGURATION
+# ===========================================
+VITE_GOOGLE_CLIENT_ID=938167572268-6fgr0tab5vmd2iuc0ha677298t413i92.apps.googleusercontent.com
+VITE_GOOGLE_REDIRECT_URI=https://synapse-frontend.vercel.app/auth/google/callback
+
+# ===========================================
+# N8N WEBHOOK CONFIGURATION
+# ===========================================
+VITE_N8N_WEBHOOK_URL=https://sandeep-synapse.app.n8n.cloud/webhook/ats-resume
+VITE_N8N_WEBHOOK_TOKEN=ats_prod_afee4e15d77fbc7b5541c1ddb7fd6fe50c81934875a287c6e11804eaa10fbaf3
+
+# ===========================================
+# PRODUCTION CONFIGURATION
+# ===========================================
+VITE_NODE_ENV=production
+VITE_DEBUG=false
+
+# ===========================================
+# DEPLOYMENT PLATFORMS
+# ===========================================
+# Frontend: Vercel (Free)
+# Backend: Railway (Free Trial - 30 days)
+# MCP Chatbot: Railway (Free Trial - 30 days)
+# Database: Railway PostgreSQL (Free Trial - 30 days)
+# Redis: Railway Redis (Free Trial - 30 days)
+# N8N: n8n.cloud (Free tier available)

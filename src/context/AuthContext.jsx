@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [accessToken, setAccessToken] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_BASE = '';
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
     const logout = useCallback(async () => {
         setUser(null);
