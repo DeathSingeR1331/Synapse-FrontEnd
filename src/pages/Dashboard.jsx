@@ -65,7 +65,8 @@ const ChatOptionsMenu = ({ chat, position, onClose, onRename, onDelete, accessTo
 
     // ✅ FIX: The export function now includes the access token for authentication.
     const handleExport = (format) => {
-        const exportUrl = `/api/v1/conversations/${chat.id}/export?format=${format}&token=${accessToken}`;
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const exportUrl = `${API_BASE}/api/v1/conversations/${chat.id}/export?format=${format}&token=${accessToken}`;
         window.open(exportUrl, '_blank');
         onClose();
     };

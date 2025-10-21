@@ -21,14 +21,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setAccessToken(null);
         try {
-            await fetch(`/api/v1/logout`, { method: 'POST', credentials: 'include' });
+            await fetch(`${API_BASE}/api/v1/logout`, { method: 'POST', credentials: 'include' });
         } catch (error) {
             console.error("Logout request failed:", error);
         }
-    }, []);
+    }, [API_BASE]);
 
     const fetchUserProfile = async (token) => {
-        const userResponse = await fetch(`/api/v1/users/me`, {
+        const userResponse = await fetch(`${API_BASE}/api/v1/users/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!userResponse.ok) {
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
         if (response.status === 401) {
             try {
-                const refreshResponse = await fetch(`/api/v1/refresh`, {
+                const refreshResponse = await fetch(`${API_BASE}/api/v1/refresh`, {
                     method: 'POST',
                     credentials: 'include'
                 });
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }) => {
         const checkUser = async () => {
             setLoading(true);
             try {
-                const refreshResponse = await fetch(`/api/v1/refresh`, {
+                const refreshResponse = await fetch(`${API_BASE}/api/v1/refresh`, {
                     method: 'POST',
                     credentials: 'include'
                 });
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }) => {
             formData.append('username', credentials.username);
             formData.append('password', credentials.password);
             
-            const response = await fetch(`/api/v1/token`, {
+            const response = await fetch(`${API_BASE}/api/v1/token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData.toString(),
@@ -140,12 +140,12 @@ export const AuthProvider = ({ children }) => {
     };
     
     const initiateGoogleAuth = () => {
-        window.location.href = `/api/v1/google/login`; 
+        window.location.href = `${API_BASE}/api/v1/google/login`; 
     };
 
     const completeGoogleProfile = async (completionToken, profileData) => {
         try {
-            const response = await fetch(`/api/v1/complete-profile`, {
+            const response = await fetch(`${API_BASE}/api/v1/complete-profile`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
