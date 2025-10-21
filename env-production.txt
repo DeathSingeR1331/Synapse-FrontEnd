@@ -7,15 +7,15 @@
 # ===========================================
 # API CONFIGURATION (Railway Backend)
 # ===========================================
-VITE_API_BASE_URL=https://synapse-backend.railway.app
-VITE_WS_BASE_URL=wss://synapse-backend.railway.app
+VITE_API_BASE_URL=https://synapse-backend-production-7887.up.railway.app
+VITE_WS_BASE_URL=wss://synapse-backend-production-7887.up.railway.app
 VITE_MCP_API_URL=https://synapse-mcp.railway.app
 
 # ===========================================
 # GOOGLE OAUTH CONFIGURATION
 # ===========================================
 VITE_GOOGLE_CLIENT_ID=938167572268-6fgr0tab5vmd2iuc0ha677298t413i92.apps.googleusercontent.com
-VITE_GOOGLE_REDIRECT_URI=https://synapse-frontend.vercel.app/auth/google/callback
+VITE_GOOGLE_REDIRECT_URI=https://synapse-front-end.vercel.app/auth/google/callback
 
 # ===========================================
 # N8N WEBHOOK CONFIGURATION
