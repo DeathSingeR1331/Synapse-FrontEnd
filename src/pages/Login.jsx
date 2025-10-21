@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { initiateGoogleAuth, emailLogin } = useAuth();
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFailure, setShowFailure] = useState(false);
+
+  // Handle OAuth error from URL parameters
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError === 'oauth_error') {
+      setError('Google authentication failed. Please try again.');
+      setShowFailure(true);
+      setTimeout(() => setShowFailure(false), 3000);
+    }
+  }, [searchParams]);
 
   const handleChange = (e) =>
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
