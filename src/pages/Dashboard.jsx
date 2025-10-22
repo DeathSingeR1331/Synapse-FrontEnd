@@ -297,7 +297,13 @@ const Dashboard = () => {
         if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }, [chats, activeChatId, clarification]);
 
-    useEffect(() => { document.documentElement.className = theme; }, [theme]);
+    useEffect(() => { 
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [theme]);
 
     const handleNewChat = () => {
         const newId = crypto.randomUUID();
@@ -559,8 +565,8 @@ const Dashboard = () => {
     if (!isAuthenticated) return null;
 
     return (
-        <div className="flex h-screen bg-black text-white overflow-hidden font-sans">
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800 pointer-events-none">
+        <div className="flex h-screen bg-white dark:bg-black text-gray-900 dark:text-white overflow-hidden font-sans">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-white to-gray-200 dark:from-gray-900 dark:via-black dark:to-gray-800 pointer-events-none">
                 <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0"
                         style={{
@@ -575,7 +581,7 @@ const Dashboard = () => {
             </div>
 
             <motion.div
-                className={`relative z-20 bg-gradient-to-b from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-lg border-r border-cyan-500/20 flex flex-col justify-between shadow-2xl transition-all duration-500 ease-out ${isSidebarExpanded ? 'w-80' : 'w-20'} min-h-0`}
+                className={`relative z-20 bg-gradient-to-b from-gray-100/95 via-white/95 to-gray-100/95 dark:from-gray-900/95 dark:via-gray-800/95 dark:to-gray-900/95 backdrop-blur-lg border-r border-cyan-500/20 flex flex-col justify-between shadow-2xl transition-all duration-500 ease-out ${isSidebarExpanded ? 'w-80' : 'w-20'} min-h-0`}
                 initial={false}
                 animate={{ width: isSidebarExpanded ? 320 : 80 }}
             >
@@ -604,9 +610,9 @@ const Dashboard = () => {
                             )}
                         </AnimatePresence>
 
-                        <motion.button onClick={toggleTheme} className="p-2 rounded-lg bg-gray-700/50 hover:bg-gray-600/50 transition-all duration-300 border border-cyan-500/20" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <motion.button onClick={toggleTheme} className="p-2 rounded-lg bg-gray-200/50 hover:bg-gray-300/50 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 transition-all duration-300 border border-cyan-500/20" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                             <motion.div animate={{ rotate: theme === 'dark' ? 0 : 180 }} transition={{ duration: 0.5 }}>
-                                {theme === 'light' ? <Icon name="moon" size={18} className="text-cyan-400" /> : <Icon name="sun" size={18} className="text-cyan-400" />}
+                                {theme === 'light' ? <Icon name="moon" size={18} className="text-gray-600" /> : <Icon name="sun" size={18} className="text-yellow-400" />}
                             </motion.div>
                         </motion.button>
                     </div>
@@ -727,15 +733,15 @@ const Dashboard = () => {
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col relative z-10 min-h-0">
                 {/* Header */}
-                <motion.div className="flex justify-between items-center p-6 border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-lg" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
+                <motion.div className="flex justify-between items-center p-6 border-b border-gray-300/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-lg" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
                     <div className="flex items-center space-x-4">
                         <AnimatePresence>
                             {activeChat && (
                                 <motion.div className="flex items-center space-x-3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                                     <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
                                     <div>
-                                        <h2 className="text-lg font-semibold text-white">{activeChat.title}</h2>
-                                        <p className="text-xs text-gray-400">AI Assistant • Online</p>
+                                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{activeChat.title}</h2>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400">AI Assistant • Online</p>
                                     </div>
                                 </motion.div>
                             )}
@@ -873,12 +879,12 @@ const Dashboard = () => {
                 </AnimatePresence>
 
                 {/* Input (sticky) */}
-                <motion.div className="flex-none p-6 border-t border-gray-700/50 bg-gray-900/50 backdrop-blur-lg sticky bottom-0 z-30" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                <motion.div className="flex-none p-6 border-t border-gray-300/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-lg sticky bottom-0 z-30" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
                     <div className="max-w-4xl mx-auto">
-                        <motion.div className="relative bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden" whileFocus={{ borderColor: "rgba(0, 255, 255, 0.5)", boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)" }}>
+                        <motion.div className="relative bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300/50 dark:border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden" whileFocus={{ borderColor: "rgba(0, 255, 255, 0.5)", boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)" }}>
                             <div className="flex items-end gap-4 p-4">
                                 <div className="flex-1">
-                                    <motion.textarea value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={activeChatId ? "Type your message..." : "Start a new chat to begin"} className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed min-h-[24px] max-h-32" disabled={!activeChatId || !!clarification} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
+                                    <motion.textarea value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={activeChatId ? "Type your message..." : "Start a new chat to begin"} className="w-full bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed min-h-[24px] max-h-32" disabled={!activeChatId || !!clarification} rows={1} style={{ height: 'auto', minHeight: '24px' }} onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }} />
                                 </div>
 
                                 <motion.button onClick={() => handleSend()} disabled={!activeChatId || !!clarification || !chatInput.trim()} className={`p-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${!activeChatId || !!clarification || !chatInput.trim() ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg hover:shadow-xl'}`} whileHover={!activeChatId || !!clarification || !chatInput.trim() ? {} : { scale: 1.05, boxShadow: "0 0 25px rgba(0, 200, 255, 0.4)" }} whileTap={!activeChatId || !!clarification || !chatInput.trim() ? {} : { scale: 0.95 }}>
