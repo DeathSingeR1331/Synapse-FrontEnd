@@ -17,6 +17,7 @@ const GoogleCallback = () => {
 
   useEffect(() => {
     const token = searchParams.get('token');
+    const accessToken = searchParams.get('access_token');
     const authError = searchParams.get('error');
 
     if (authError) {
@@ -24,15 +25,22 @@ const GoogleCallback = () => {
       return;
     }
     
-    // This component's ONLY job is to handle new users with a token.
+    // Handle existing users with access_token
+    if (accessToken) {
+      // Set the access token and redirect to dashboard
+      setAccessToken(accessToken);
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+    
+    // Handle new users with completion token
     if (token) {
       setCompletionToken(token);
     } else {
-      // If a user lands here without a token, it's an invalid state.
-      // The backend should have redirected an existing user to /dashboard directly.
-      setError("Invalid authentication state: No completion token found.");
+      // If a user lands here without any token, it's an invalid state.
+      setError("Invalid authentication state: No authentication token found.");
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
   
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
