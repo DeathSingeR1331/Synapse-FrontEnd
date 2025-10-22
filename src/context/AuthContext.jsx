@@ -15,6 +15,12 @@ export const AuthProvider = ({ children }) => {
     const [accessToken, setAccessToken] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Debug wrapper for setAccessToken
+    const setAccessTokenWithLogging = (token) => {
+        console.log('AuthContext: setAccessToken called with:', token ? token.substring(0, 20) + '...' : 'null');
+        setAccessToken(token);
+    };
+
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
     const logout = useCallback(async () => {
@@ -179,7 +185,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         accessToken,
-        setAccessToken,
+        setAccessToken: setAccessTokenWithLogging,
         isAuthenticated: !!user,
         apiCall,
         emailLogin,

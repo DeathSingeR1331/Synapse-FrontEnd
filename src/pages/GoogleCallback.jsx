@@ -34,9 +34,12 @@ const GoogleCallback = () => {
     
     // Handle existing users with access_token
     if (accessToken) {
-      // Set the access token and redirect to dashboard
+      console.log('Processing existing user with access_token:', accessToken.substring(0, 20) + '...');
+      console.log('Calling setAccessToken...');
       setAccessToken(accessToken);
+      console.log('Navigating to dashboard...');
       navigate('/dashboard', { replace: true });
+      console.log('Navigation called, should redirect now');
       return;
     }
     
