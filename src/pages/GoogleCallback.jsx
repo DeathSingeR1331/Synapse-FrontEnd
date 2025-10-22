@@ -8,7 +8,7 @@ const GoogleCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // CORRECTED: Get the 'completeGoogleProfile' function from the context. 'login' is removed.
-  const { completeGoogleProfile, setAccessToken } = useAuth(); 
+  const { completeGoogleProfile, setAccessToken, setUser } = useAuth(); 
   const [error, setError] = useState(null);
 
   const [completionToken, setCompletionToken] = useState(null);
@@ -37,6 +37,25 @@ const GoogleCallback = () => {
       console.log('Processing existing user with access_token:', accessToken.substring(0, 20) + '...');
       console.log('Calling setAccessToken...');
       setAccessToken(accessToken);
+      
+      // Fetch user profile immediately to avoid refresh issues
+      console.log('Fetching user profile...');
+      try {
+        const userResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/users/me`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          console.log('User profile fetched successfully:', userData.username);
+          // Set user in context to avoid refresh call
+          setUser(userData);
+        } else {
+          console.error('Failed to fetch user profile:', userResponse.status);
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+      }
+      
       console.log('Navigating to dashboard...');
       navigate('/dashboard', { replace: true });
       console.log('Navigation called, should redirect now');
