@@ -16,60 +16,64 @@ const GoogleCallback = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const accessToken = searchParams.get('access_token');
-    const authError = searchParams.get('error');
+    const handleAuth = async () => {
+      const token = searchParams.get('token');
+      const accessToken = searchParams.get('access_token');
+      const authError = searchParams.get('error');
 
-    console.log('GoogleCallback loaded with params:', {
-      token: token ? 'present' : 'missing',
-      accessToken: accessToken ? 'present' : 'missing', 
-      authError: authError || 'none',
-      fullUrl: window.location.href
-    });
+      console.log('GoogleCallback loaded with params:', {
+        token: token ? 'present' : 'missing',
+        accessToken: accessToken ? 'present' : 'missing', 
+        authError: authError || 'none',
+        fullUrl: window.location.href
+      });
 
-    if (authError) {
-      setError(`Authentication failed: ${authError}`);
-      return;
-    }
-    
-    // Handle existing users with access_token
-    if (accessToken) {
-      console.log('Processing existing user with access_token:', accessToken.substring(0, 20) + '...');
-      console.log('Calling setAccessToken...');
-      setAccessToken(accessToken);
-      
-      // Fetch user profile immediately to avoid refresh issues
-      console.log('Fetching user profile...');
-      try {
-        const userResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/users/me`, {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          console.log('User profile fetched successfully:', userData.username);
-          // Set user in context to avoid refresh call
-          setUser(userData);
-        } else {
-          console.error('Failed to fetch user profile:', userResponse.status);
-        }
-      } catch (err) {
-        console.error('Error fetching user profile:', err);
+      if (authError) {
+        setError(`Authentication failed: ${authError}`);
+        return;
       }
       
-      console.log('Navigating to dashboard...');
-      navigate('/dashboard', { replace: true });
-      console.log('Navigation called, should redirect now');
-      return;
-    }
-    
-    // Handle new users with completion token
-    if (token) {
-      setCompletionToken(token);
-    } else {
-      // If a user lands here without any token, it's an invalid state.
-      setError("Invalid authentication state: No authentication token found.");
-    }
-  }, [searchParams, navigate]);
+      // Handle existing users with access_token
+      if (accessToken) {
+        console.log('Processing existing user with access_token:', accessToken.substring(0, 20) + '...');
+        console.log('Calling setAccessToken...');
+        setAccessToken(accessToken);
+        
+        // Fetch user profile immediately to avoid refresh issues
+        console.log('Fetching user profile...');
+        try {
+          const userResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/users/me`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log('User profile fetched successfully:', userData.username);
+            // Set user in context to avoid refresh call
+            setUser(userData);
+          } else {
+            console.error('Failed to fetch user profile:', userResponse.status);
+          }
+        } catch (err) {
+          console.error('Error fetching user profile:', err);
+        }
+        
+        console.log('Navigating to dashboard...');
+        navigate('/dashboard', { replace: true });
+        console.log('Navigation called, should redirect now');
+        return;
+      }
+      
+      // Handle new users with completion token
+      if (token) {
+        setCompletionToken(token);
+      } else {
+        // If a user lands here without any token, it's an invalid state.
+        setError("Invalid authentication state: No authentication token found.");
+      }
+    };
+
+    handleAuth();
+  }, [searchParams, navigate, setAccessToken, setUser]);
   
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
