@@ -123,6 +123,7 @@ const GoogleCallback = () => {
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
         <p>Processing authentication...</p>
+        <p className="text-sm text-gray-400 mt-2">Please wait while we complete your login</p>
       </div>
     </div>
   );
