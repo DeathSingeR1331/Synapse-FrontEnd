@@ -176,6 +176,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         accessToken,
+        setAccessToken,
         isAuthenticated: !!user,
         apiCall,
         emailLogin,

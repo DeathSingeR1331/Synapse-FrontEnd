@@ -8,7 +8,7 @@ const GoogleCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // CORRECTED: Get the 'completeGoogleProfile' function from the context. 'login' is removed.
-  const { completeGoogleProfile } = useAuth(); 
+  const { completeGoogleProfile, setAccessToken } = useAuth(); 
   const [error, setError] = useState(null);
 
   const [completionToken, setCompletionToken] = useState(null);
