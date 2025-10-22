@@ -140,7 +140,10 @@ export const AuthProvider = ({ children }) => {
     };
     
     const initiateGoogleAuth = () => {
-        window.location.href = `${API_BASE}/api/v1/google/login`; 
+        const googleLoginUrl = `${API_BASE}/api/v1/google/login`;
+        console.log('Initiating Google OAuth with URL:', googleLoginUrl);
+        console.log('API_BASE:', API_BASE);
+        window.location.href = googleLoginUrl; 
     };
 
     const completeGoogleProfile = async (completionToken, profileData) => {

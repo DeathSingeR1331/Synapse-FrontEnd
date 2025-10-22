@@ -20,6 +20,13 @@ const GoogleCallback = () => {
     const accessToken = searchParams.get('access_token');
     const authError = searchParams.get('error');
 
+    console.log('GoogleCallback loaded with params:', {
+      token: token ? 'present' : 'missing',
+      accessToken: accessToken ? 'present' : 'missing', 
+      authError: authError || 'none',
+      fullUrl: window.location.href
+    });
+
     if (authError) {
       setError(`Authentication failed: ${authError}`);
       return;
