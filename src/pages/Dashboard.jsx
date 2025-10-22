@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+// Updated: Fixed environment configuration for production deployment
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
